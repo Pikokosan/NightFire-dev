@@ -24,5 +24,10 @@
 
 # Executables
 *.exe
+*.hex
 *.out
 *.app
+
+# Folders
+.pioenvs/
+.piolibdeps/
