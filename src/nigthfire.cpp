@@ -25,6 +25,11 @@
     0 = crc
 
  *
+
+  ToDo:
+  Add display backlight timout.
+  proper send_response commands
+
  */
 
 
@@ -36,6 +41,12 @@
 #include <RF24.h>
 #include <RF24Network.h>
 #include <RF24Mesh.h>
+
+//delay to turn off the lcd display
+const long interval = 5000;
+unsigned long previousMillis = 0;
+boolean displayOn = true;
+boolean displayTimer = true;
 
 
 LiquidCrystal_I2C lcd(0x3F,16,2);  // set the LCD address to 0x3F for a 16 chars and 2 line display
@@ -240,10 +251,11 @@ void setup() {
 
   pinMode(rx_en, OUTPUT);
 
-  pinMode(key1, INPUT_PULLUP);
-  pinMode(key2, INPUT_PULLUP);
-  pinMode(key3, INPUT_PULLUP);
-  pinMode(key4, INPUT_PULLUP);
+  //pinMode(key1, INPUT_PULLUP);
+  //pinMode(key2, INPUT_PULLUP);
+  //pinMode(key3, INPUT_PULLUP);
+  //pinMode(key4, INPUT_PULLUP);
+  previousMillis = millis();
   /*
   Menu structre
   Menu mm("  Status Menu");
@@ -271,8 +283,12 @@ void setup() {
   mu1.add_item(&mu1_mi1, &on_Settings_selected);
   mu1.add_item(&mu1_mi2, &on_linktype_selected);
   ms.set_root_menu(&mm);
+
   //displayMenu();
-  //lcd.clear();
+  lcd.clear();
+  lcd.setCursor(6,1);
+  lcd.print("SAFE");
+  //lcd.noBacklight();
   //mesh.begin();
 
 }
@@ -289,6 +305,7 @@ byte CRC8(volatile byte *data, byte len)
       byte sum = (crc ^ extract) & 0x01;
       crc >>= 1;
       if (sum) {
+        //crc ^=0xE0;
         crc ^= 0x8C;
       }
       extract >>= 1;
@@ -300,6 +317,17 @@ byte CRC8(volatile byte *data, byte len)
 
 boolean packet_decode()
 {
+  int test = 0;
+  test = CRC8(recv_packet.Data, recv_packet.Datalength);
+  #ifdef DEBUG
+    Serial.print("crc cal = ");
+    Serial.println(test);
+  #endif
+  if(test == recv_packet.CRC)
+  {
+    return true;
+  }
+
   return false;
 
 }
@@ -317,6 +345,7 @@ void do_command()
     case CMD_PING:
       //send_response(RESPONSE_PONG);
       //Serial.println("PONG");
+      recv_packet.Datalength = 0; //no data is sent just the pong responce command
       send_response(RESPONSE_PONG);
       break;
 
@@ -336,8 +365,10 @@ void do_command()
       //not implimented yet
       digitalWrite(testPin, LOW);
       digitalWrite(firePin, HIGH);
-      lcd.setCursor(15,0);
-      lcd.print("F");
+      lcd.clear();
+      lcd.setCursor(4,1);
+      lcd.print("!ARMED!");
+      displayTimer = false;
       fire_armed_remote = true;
       break;
 
@@ -345,24 +376,34 @@ void do_command()
       //not implimented yet
       digitalWrite(firePin, LOW);
       digitalWrite(testPin, HIGH);
-      lcd.setCursor(15,0);
-      lcd.print("T");
+      lcd.clear();
+      lcd.setCursor(5,1);
+      lcd.print("!TEST!");
+      displayTimer = false;
       test_armed_remote = true;
       break;
 
     case CMD_FIRE_DISABLE:
       //not implimented yet
       digitalWrite(firePin, LOW);
-      lcd.setCursor(15,0);
-      lcd.print("S");
+      lcd.clear();
+      lcd.setCursor(6,1);
+      lcd.print("SAFE");
+      //Turn the display timer back on and reset the timer
+      displayTimer = true;
+      previousMillis = millis();
       fire_armed_remote = false;
       break;
 
     case CMD_TEST_DISABLE:
       //note implimented yet
       digitalWrite(testPin, LOW);
-      lcd.setCursor(15,0);
-      lcd.print("S");
+      lcd.clear();
+      lcd.setCursor(6,1);
+      lcd.print("SAFE");
+      //Turn the display timer back on and reset the timer
+      displayTimer = true;
+      previousMillis = millis();
       test_armed_remote = false;
       break;
 
@@ -376,13 +417,20 @@ void do_command()
 
     case CMD_GET_CHANNEL_COUNT:
       // = CHANNEL_COUNT;
-      recv_packet.Datalength = 1;
+      recv_packet.Datalength = 4;
       recv_packet.Data[0] = CHANNEL_COUNT;
+      recv_packet.Data[1] = 1;//Hardware Version
+      recv_packet.Data[2] = 0;//Major software Version
+      recv_packet.Data[3] = 2;//Minor software Version
+
+
+      recv_packet.CRC = CRC8(recv_packet.Data, recv_packet.Datalength);
       send_response(RESPONSE_CHANNEL_COUNT);
       break;
 
     default:
       {
+        recv_packet.Datalength = 0;
         send_response(RESPONSE_BAD_COMMAND);
       }
     }
@@ -393,17 +441,19 @@ void sendStructure( char *structurePointer, int structureLength)
 {
   digitalWrite(rx_en, HIGH);
   int i;
-  for (i = 0 ; i < structureLength ; i++){
+
+  for (i = 0 ; i < 3+recv_packet.Datalength ; i++){
 
     Serial.print(structurePointer[i], DEC);
-    if( i == structureLength){
-      Serial.println();
-    }
-    else{
+
       Serial.print(",");
-    }
+
+
 
   }
+  //Serial.print(recv_packet.CRC);
+
+  //Serial.println();
 }
 
 
@@ -413,7 +463,8 @@ void send_response(byte response_type)
 
   recv_packet.Module = 255;
   recv_packet.Command = response_type;
-
+  //Serial.printf("170,%s,%s\n",recv_packet.Module, recv_packet.Command );
+//Serial.write((char * )&recv_packet, sizeof(recv_packet));
   sendStructure((char *)&recv_packet, sizeof(recv_packet));
   //Serial.write(recv_packet, sizeof(recv_packet));
 
@@ -465,15 +516,15 @@ int readline(int readch, char *payload, int len)
   //Serial.println("Readline called");
 
   if (readch > 0) {
-    Serial.println("Got data");
+    //Serial.println("Got data");
     switch (readch) {
       case '\n': // Ignore new-lines
-        Serial.println("found \n");
+        //Serial.println("found \n");
         break;
       case '\r': // Return on CR
         rpos = pos;
         pos = 0;  // Reset position index ready for next time
-        Serial.println("found \r");
+        //Serial.println("found \r");
         return rpos;
       default:
         if (pos < len-1) {
@@ -492,6 +543,18 @@ int readline(int readch, char *payload, int len)
     //mesh update must be called every cycle to keep the radio up
     //mesh.update();
     //Serial.print("LOOOOOPING");
+    unsigned long currentMillis = millis();
+    if (displayTimer){
+      if (currentMillis - previousMillis >= interval) {
+        //set the old millis to the current millis so it doesn't get confused
+        lcd.noBacklight();
+        previousMillis = currentMillis;
+      }
+    }else
+    {
+      lcd.backlight();
+
+    }
 
     digitalWrite(rx_en, LOW);
 
@@ -501,13 +564,13 @@ int readline(int readch, char *payload, int len)
       if(readline(Serial.read(), payload, 30) > 0)
       {
 
-          //#ifdef DEBUG
+          #ifdef DEBUG
           digitalWrite(rx_en, HIGH);
           Serial.print("You entered: >");
           Serial.print(payload);
           Serial.println("<");
 
-          //#endif
+          #endif
       //payload = Serial.readString();
       //TEST+++++++++=++++++++++++++++++++++++++
            char delimiter[] =",";
@@ -519,7 +582,7 @@ int readline(int readch, char *payload, int len)
 
            //This initializes strtok with string to tokenize
            valPosition = strtok((char*)payload, delimiter);
-           Serial.println("=======tokenizing==========");
+           //Serial.println("=======tokenizing==========");
 
            while(valPosition != NULL){
              //Serial.println(valPosition);
@@ -541,8 +604,8 @@ int readline(int readch, char *payload, int len)
            {
 
              recv_packet.Data[x] = packed[x+4];
-             Serial.print("Tick = ");
-             Serial.println(recv_packet.Data[x]);
+             //Serial.print("Tick = ");
+             //Serial.println(recv_packet.Data[x]);
            }
 
            recv_packet.CRC = packed[recv_packet.Datalength+4];
@@ -569,7 +632,10 @@ int readline(int readch, char *payload, int len)
             Serial.println("=======Packet End=======");
 
            #endif
-           do_command();
+           if(packet_decode()){
+             do_command();
+           }
+
 
       //if (packet_decode() == true) do_command();
 
