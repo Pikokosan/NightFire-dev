@@ -544,6 +544,10 @@ int readline(int readch, char *payload, int len)
     //mesh.update();
     //Serial.print("LOOOOOPING");
     unsigned long currentMillis = millis();
+    /* Check to see if the displaytimer is enabled. if it is we check to
+     * check to see if we hit the time out. if we do then we want to turn
+     * off the display to save power.
+     */
     if (displayTimer){
       if (currentMillis - previousMillis >= interval) {
         //set the old millis to the current millis so it doesn't get confused
