@@ -62,7 +62,9 @@ proper send_response commands
 const long interval = 5000;
 unsigned long previousMillis = 0;
 boolean displayOn = true;
-boolean displayTimer = true;
+boolean displayTimer = false;
+
+//Setup eeprom one time run
 
 
 LiquidCrystal_I2C lcd(0x3F,16,2);  // set the LCD address to 0x3F for a 16 chars and 2 line display
@@ -70,6 +72,7 @@ LiquidCrystal_I2C lcd(0x3F,16,2);  // set the LCD address to 0x3F for a 16 chars
 
 boolean response = false;
 boolean command_recv = false;
+boolean SOF = true;
 boolean fire_armed_remote = false;
 boolean test_armed_remote = false;
 //byte rx_count;
@@ -113,12 +116,12 @@ int packet_error = 0;
 
 
 //Protocol define
-#define CMD_UNKNOWN 0x00
-#define CMD_PING 0x01
-#define CMD_FIRE 0x02
+#define CMD_UNKNOWN 0
+#define CMD_PING 1
+#define CMD_FIRE 2
 #define CMD_TEST 3
 #define CMD_TESTALL 4
-#define CMD_FIRE_ENABLE 0x05
+#define CMD_FIRE_ENABLE 5
 #define CMD_FIRE_DISABLE 6
 #define CMD_TEST_ENABLE 7
 #define CMD_TEST_DISABLE 8
@@ -144,14 +147,15 @@ int packet_error = 0;
 //broadcast,     mm:ss:ms
 //pc->module no responce
 
-#define CMD_SET_TIMECODE 12 //fstc
-#define CMD_START_TIMECODE 13 //tbeg
-#define CMD_STOP_TIMECODE 14 //tdis
+#define CMD_SET_TIMECODE 13 //fstc
+#define CMD_START_TIMECODE 14 //tbeg
+#define CMD_STOP_TIMECODE 15 //tdis
 */
 
 
 void send_response(byte response_type);
 void fire_channel();
+void setlcdModule();
 
 //Radio setup
 RF24 radio(8,10);
@@ -209,7 +213,7 @@ void setup() {
   lcd.backlight();
   lcd.setCursor(4,0);
   lcd.print("Starting");
-  //EEPROM.write(0,1);
+  EEPROM.write(0,1);
   Serial.begin(9600);
   //enable pins
   pinMode(statusLed,  OUTPUT);
@@ -252,6 +256,7 @@ void setup() {
 
 byte CRC8(volatile byte *data, byte len)
 {
+  //CRC8-maxim
   byte crc = 0x00;
   while (len--)
   {
@@ -274,10 +279,10 @@ byte CRC8(volatile byte *data, byte len)
 boolean packet_decode()
 {
   int test = 0;
-  test = CRC8((byte*)&recv_packet, sizeof(recv_packet));
+  test = CRC8((byte*)&recv_packet, sizeof(recv_packet)-1);
   #ifdef DEBUG
   Serial.print("crc cal = ");
-  Serial.println(test);
+  Serial.println(test,HEX);
   #endif
   if(test == recv_packet.CRC)
   {
@@ -388,16 +393,11 @@ void do_command()
       break;
 
       case CMD_SET_ID:
-      EEPROM.write(recv_packet.Data[0],0);
+      EEPROM.update(0,recv_packet.Data[0]);
       MODULE_ID = recv_packet.Data[0];
       recv_packet.Datalength = 1;
       recv_packet.Data[0]=EEPROM.read(0);
-      lcd.setCursor(15,1);
-      //rest
-      lcd.rightToLeft();
-      lcd.print(MODULE_ID);
-      lcd.leftToRight();
-      send_response(RESPONSE_ID_SET);
+      setlcdModule();
       break;
 
       default:
@@ -408,6 +408,18 @@ void do_command()
     }
   }
 }
+
+void setlcdModule()
+  {
+    if(MODULE_ID <= 9){
+      lcd.setCursor(15,1);
+    }else if(MODULE_ID<=99){
+      lcd.setCursor(14,1);
+    }else if(MODULE_ID <=255){
+      lcd.setCursor(13,1);
+    }
+    lcd.print(MODULE_ID);
+  }
 
 void sendStructure( char *structurePointer, int structureLength)
 {
@@ -436,9 +448,9 @@ void send_response(byte response_type)
   recv_packet.Module = 255;
   recv_packet.Command = response_type;
   //CRC the whole packet
-  CRC8((byte*)&recv_packet, sizeof(recv_packet));
+  CRC8((byte*)&recv_packet, sizeof(recv_packet)-1);
   //write the packet to the serial port
-  Serial.write((char*)&recv_packet, sizeof(recv_packet));
+  Serial.write((byte*)&recv_packet, sizeof(recv_packet));
 
 
 
@@ -479,48 +491,63 @@ void Rx_Decode(){ //  We process sending received on UART.
 
   buf[rx_count] = Serial.read();
   //Serial.println(rx_bayt, DEC);
+
+  //Serial.rpint
   //recv_packet.header=buf[rx_count];
 
   if (buf[rx_count] == 0xAA && rx_count ==0)
   {
     //CRC8=0;
     //recv_packet.Header = buf[0];
+
+    SOF = false;
     rx_count++;
   }
-  else if(rx_count == 1)
+  else if(rx_count == 1 && SOF==false)
   {
     recv_packet.Module = buf[1];
     //CRC_8(recv_packet.slat);
 
     rx_count++;
   }
-  else if(rx_count == 2)
+  else if(rx_count == 2 && SOF==false)
   {
     recv_packet.Command = buf[2];
     //CRC_8(recv_packet.cue);
     rx_count++;
   }
-  else if(rx_count == 3)
+  else if(rx_count == 3 && SOF==false)
   {
     recv_packet.Datalength = buf[3];
     //Serial.println("data length");
+    //Clear the data array and zero it out so we get the correct crc
+    for(int i = 0; i>10; i++)
+    {
+      recv_packet.Data[i] = 0;
+    }
     rx_count++;
-  }else if(rx_count < recv_packet.Datalength+4)
+  }else if(rx_count < recv_packet.Datalength+4 && SOF==false)
   {
     //Serial.println("DAta");
     recv_packet.Data[rx_count-4] = buf[rx_count];
     rx_count++;
-  }else if(rx_count == recv_packet.Datalength+4)
+  }else if(rx_count == recv_packet.Datalength+4 && SOF==false)
   {
     recv_packet.CRC = buf[rx_count];
+
     if (packet_decode()){
       do_command();
+      SOF = true;
+      rx_count = 0;
     }else{
 
       //This is just for debuging.
       packet_error ++;
-      lcd.setCursor(0,0);
+      lcd.setCursor(0,1);
       lcd.println(packet_error,DEC);
+      Serial.println(packet_error,DEC);
+      SOF = true;
+      rx_count = 0;
     }
     #ifdef DEBUG
       Serial.println("======Packet Start======");
@@ -539,10 +566,11 @@ void Rx_Decode(){ //  We process sending received on UART.
 
       Serial.println();
       Serial.print("CRC = ");
-      Serial.println(recv_packet.CRC);
+      Serial.println(recv_packet.CRC,HEX);
       Serial.println("=======Packet End=======");
     #endif
     rx_count = 0;
+    SOF = true;
   }
 
 
