@@ -64,10 +64,41 @@ unsigned long previousMillis = 0;
 boolean displayOn = true;
 boolean displayTimer = false;
 
-//Setup eeprom one time run
+
 
 
 LiquidCrystal_I2C lcd(0x3F,16,2);  // set the LCD address to 0x3F for a 16 chars and 2 line display
+//Custom lcd Char
+byte batfull[8] ={
+	0b01110,
+	0b11111,
+	0b11111,
+	0b11111,
+	0b11111,
+	0b11111,
+	0b11111,
+	0b11111
+};
+byte bathalf[8] ={
+	0b01110,
+	0b11111,
+	0b10001,
+	0b10011,
+	0b10111,
+	0b11111,
+	0b11111,
+	0b11111
+};
+byte batlow[8] ={
+	0b01110,
+	0b11111,
+	0b10001,
+	0b10001,
+	0b10001,
+	0b10011,
+	0b10111,
+	0b11111
+};
 
 
 boolean response = false;
@@ -86,7 +117,7 @@ boolean test_armed_remote = false;
 int MODULE_ID  = EEPROM.read(0);
 
 //serial debug enable
-//#define DEBUG
+#define DEBUG
 
 //System setup
 #define CHANNEL_COUNT 16
@@ -226,6 +257,12 @@ void setup() {
 
   pinMode(rx_en, OUTPUT);
 
+  //init custom lcd charters
+  lcd.createChar(1,batfull);
+  lcd.createChar(2,bathalf);
+  lcd.createChar(3,batlow);
+  
+
   //LCD timer event
   previousMillis = millis();
 
@@ -239,6 +276,8 @@ void setup() {
 
   //displayMenu();
   lcd.clear();
+  lcd.setCursor(15,0);
+  lcd.write(1);
   lcd.setCursor(0,0);
   lcd.print("Status:");
   lcd.setCursor(9,0);
@@ -543,6 +582,7 @@ void Rx_Decode(){ //  We process sending received on UART.
 
       //This is just for debuging.
       packet_error ++;
+      memset(recv_packet.Data,0,sizeof(recv_packet.Data));
       lcd.setCursor(0,1);
       lcd.println(packet_error,DEC);
       Serial.println(packet_error,DEC);
@@ -559,7 +599,8 @@ void Rx_Decode(){ //  We process sending received on UART.
       Serial.println(recv_packet.Datalength,DEC);
       Serial.print("Data = ");
 
-      for(int i =0; i < recv_packet.Datalength; i++){
+      //for(int i =0; i < recv_packet.Datalength; i++){
+      for(int i =0; i < 10; i++){
         Serial.print(recv_packet.Data[i],DEC);
         Serial.print(",");
       }
