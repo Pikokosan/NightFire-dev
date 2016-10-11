@@ -117,12 +117,12 @@ boolean test_armed_remote = false;
 int MODULE_ID  = EEPROM.read(0);
 
 //serial debug enable
-#define DEBUG
+//#define DEBUG
 
 //System setup
 #define CHANNEL_COUNT 16
 #define FIRE_DELAY 100
-String Version = "0.2";
+String Version = "0.3";
 
 uint8_t buf[30];
 uint8_t rx_count = 0;
@@ -261,7 +261,7 @@ void setup() {
   lcd.createChar(1,batfull);
   lcd.createChar(2,bathalf);
   lcd.createChar(3,batlow);
-  
+
 
   //LCD timer event
   previousMillis = millis();
@@ -573,22 +573,6 @@ void Rx_Decode(){ //  We process sending received on UART.
   }else if(rx_count == recv_packet.Datalength+4 && SOF==false)
   {
     recv_packet.CRC = buf[rx_count];
-
-    if (packet_decode()){
-      do_command();
-      SOF = true;
-      rx_count = 0;
-    }else{
-
-      //This is just for debuging.
-      packet_error ++;
-      memset(recv_packet.Data,0,sizeof(recv_packet.Data));
-      lcd.setCursor(0,1);
-      lcd.println(packet_error,DEC);
-      Serial.println(packet_error,DEC);
-      SOF = true;
-      rx_count = 0;
-    }
     #ifdef DEBUG
       Serial.println("======Packet Start======");
       Serial.print("Module id = ");
@@ -610,6 +594,24 @@ void Rx_Decode(){ //  We process sending received on UART.
       Serial.println(recv_packet.CRC,HEX);
       Serial.println("=======Packet End=======");
     #endif
+
+    if (packet_decode()){
+      do_command();
+      SOF = true;
+      memset(recv_packet.Data,0,sizeof(recv_packet.Data));
+      rx_count = 0;
+    }else{
+
+      //This is just for debuging.
+      packet_error ++;
+      memset(recv_packet.Data,0,sizeof(recv_packet.Data));
+      lcd.setCursor(0,1);
+      lcd.println(packet_error,DEC);
+      Serial.println(packet_error,DEC);
+      SOF = true;
+      rx_count = 0;
+    }
+
     rx_count = 0;
     SOF = true;
   }
