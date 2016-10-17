@@ -598,13 +598,14 @@ void Rx_Decode(){ //  We process sending received on UART.
     if (packet_decode()){
       do_command();
       SOF = true;
-      memset(recv_packet.Data,0,sizeof(recv_packet.Data));
+      memset(&recv_packet,0,sizeof recv_packet );
       rx_count = 0;
     }else{
 
       //This is just for debuging.
       packet_error ++;
-      memset(recv_packet.Data,0,sizeof(recv_packet.Data));
+      //memset(recv_packet.Data,0,sizeof(recv_packet.Data));
+      memset(&recv_packet,0,sizeof recv_packet);
       lcd.setCursor(0,1);
       lcd.println(packet_error,DEC);
       Serial.println(packet_error,DEC);
