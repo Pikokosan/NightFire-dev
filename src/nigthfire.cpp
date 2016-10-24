@@ -67,6 +67,7 @@ boolean displayTimer = false;
 
 
 
+
 LiquidCrystal_I2C lcd(0x3F,16,2);  // set the LCD address to 0x3F for a 16 chars and 2 line display
 //Custom lcd Char
 byte batfull[8] ={
@@ -437,6 +438,7 @@ void do_command()
       recv_packet.Datalength = 1;
       recv_packet.Data[0]=EEPROM.read(0);
       setlcdModule();
+			send_response(RESPONSE_ID_SET);
       break;
 
       default:
@@ -489,7 +491,9 @@ void send_response(byte response_type)
   //CRC the whole packet
   CRC8((byte*)&recv_packet, sizeof(recv_packet)-1);
   //write the packet to the serial port
+	digitalWrite(rx_en, HIGH);
   Serial.write((byte*)&recv_packet, sizeof(recv_packet));
+	delay(100);
 
 
 
@@ -574,6 +578,7 @@ void Rx_Decode(){ //  We process sending received on UART.
   {
     recv_packet.CRC = buf[rx_count];
     #ifdef DEBUG
+			digitalWrite(rx_en,HIGH);
       Serial.println("======Packet Start======");
       Serial.print("Module id = ");
       Serial.println(recv_packet.Module,DEC);
@@ -645,6 +650,10 @@ void loop() {
       previousMillis = currentMillis;
     }
   }
+
+	//digitalWrite(rx_en, HIGH);
+	//Serial.println("loop!");
+
 
   digitalWrite(rx_en, LOW);
 
