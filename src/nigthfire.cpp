@@ -319,7 +319,9 @@ byte CRC8(volatile byte *data, byte len)
 boolean packet_decode()
 {
   int test = 0;
-  test = CRC8((byte*)&recv_packet, sizeof(recv_packet)-1);
+
+
+  test = CRC8((byte*)&recv_packet, recv_packet.Datalength+3);
   #ifdef DEBUG
   Serial.print("crc cal = ");
   Serial.println(test,HEX);
@@ -489,7 +491,7 @@ void send_response(byte response_type)
   recv_packet.Module = 255;
   recv_packet.Command = response_type;
   //CRC the whole packet
-  CRC8((byte*)&recv_packet, sizeof(recv_packet)-1);
+  recv_packet.CRC = CRC8((byte*)&recv_packet, sizeof(recv_packet)-1);
   //write the packet to the serial port
 	digitalWrite(rx_en, HIGH);
   Serial.write((byte*)&recv_packet, sizeof(recv_packet));
