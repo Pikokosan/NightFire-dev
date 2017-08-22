@@ -1,0 +1,58 @@
+\hypertarget{struct_p_n_c_p_1_1_f_r_a_m_e}{}\section{P\+N\+CP\+:\+:F\+R\+A\+ME Struct Reference}
+\label{struct_p_n_c_p_1_1_f_r_a_m_e}\index{P\+N\+C\+P\+::\+F\+R\+A\+ME@{P\+N\+C\+P\+::\+F\+R\+A\+ME}}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{struct_p_n_c_p_1_1_f_r_a_m_e_a78193000e93eb9f756c36b0bcb122ff8}\label{struct_p_n_c_p_1_1_f_r_a_m_e_a78193000e93eb9f756c36b0bcb122ff8}} 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+union \{\\
+\mbox{\Hypertarget{union_p_n_c_p_1_1_f_r_a_m_e_1_1_0D0_adc5cad8974c31676c959095bcd1502f6}\label{union_p_n_c_p_1_1_f_r_a_m_e_1_1_0D0_adc5cad8974c31676c959095bcd1502f6}} 
+\>struct \{\\
+\>\>uint8\_t {\bfseries CF}: 1\\
+\>\>uint8\_t {\bfseries RSV}: 1\\
+\>\>uint8\_t {\bfseries PT}: 1\\
+\>\>uint8\_t {\bfseries PLI}: 4\\
+\>\>uint8\_t {\bfseries FV}: 1\\
+\>\} \\
+\>uint8\_t {\bfseries PRMS}\\
+\} {\bfseries header}\\
+
+\end{tabbing}\item 
+\mbox{\Hypertarget{struct_p_n_c_p_1_1_f_r_a_m_e_a741208bf03db8c66bbf2965189eeeb6a}\label{struct_p_n_c_p_1_1_f_r_a_m_e_a741208bf03db8c66bbf2965189eeeb6a}} 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+union \{\\
+\>uint8\_t {\bfseries GADD}\\
+\>uint8\_t {\bfseries UADD} \mbox{[}4\mbox{]}\\
+\>uint32\_t {\bfseries LUADD}\\
+\} {\bfseries address}\\
+
+\end{tabbing}\item 
+\mbox{\Hypertarget{struct_p_n_c_p_1_1_f_r_a_m_e_a1fbaf3058d1ed6968ed1252ca7bcc5f9}\label{struct_p_n_c_p_1_1_f_r_a_m_e_a1fbaf3058d1ed6968ed1252ca7bcc5f9}} 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+union \{\\
+\mbox{\Hypertarget{union_p_n_c_p_1_1_f_r_a_m_e_1_1_0D2_a66081d7fd81353f153f87599e232986c}\label{union_p_n_c_p_1_1_f_r_a_m_e_1_1_0D2_a66081d7fd81353f153f87599e232986c}} 
+\>struct \{\\
+\>\>uint8\_t {\bfseries RSV}: 4\\
+\>\>uint8\_t {\bfseries CMD}: 4\\
+\>\} \\
+\>uint8\_t {\bfseries PLD} \mbox{[}BUFFERSIZE\mbox{]}\\
+\}; \\
+
+\end{tabbing}\item 
+\mbox{\Hypertarget{struct_p_n_c_p_1_1_f_r_a_m_e_a574c3a69496acdcaf8ff7596a4c72b80}\label{struct_p_n_c_p_1_1_f_r_a_m_e_a574c3a69496acdcaf8ff7596a4c72b80}} 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+union \{\\
+\>uint8\_t {\bfseries CRC} \mbox{[}2\mbox{]}\\
+\>uint16\_t {\bfseries LCRC}\\
+\} {\bfseries crc}\\
+
+\end{tabbing}\end{DoxyCompactItemize}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+lib/\+P\+N\+C\+P/P\+N\+C\+P.\+h\end{DoxyCompactItemize}

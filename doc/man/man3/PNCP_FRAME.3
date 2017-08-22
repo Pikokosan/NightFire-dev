@@ -1,0 +1,94 @@
+.TH "PNCP::FRAME" 3 "Tue May 9 2017" "Version 0.1" "Arduino-PNCP" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+PNCP::FRAME
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "union {"
+.br
+.ti -1c
+.RI "   struct {"
+.br
+.ti -1c
+.RI "      uint8_t \fBCF\fP: 1"
+.br
+.ti -1c
+.RI "      uint8_t \fBRSV\fP: 1"
+.br
+.ti -1c
+.RI "      uint8_t \fBPT\fP: 1"
+.br
+.ti -1c
+.RI "      uint8_t \fBPLI\fP: 4"
+.br
+.ti -1c
+.RI "      uint8_t \fBFV\fP: 1"
+.br
+.ti -1c
+.RI "   } "
+.br
+.ti -1c
+.RI "   uint8_t \fBPRMS\fP"
+.br
+.ti -1c
+.RI "} \fBheader\fP"
+.br
+.ti -1c
+.RI "union {"
+.br
+.ti -1c
+.RI "   uint8_t \fBGADD\fP"
+.br
+.ti -1c
+.RI "   uint8_t \fBUADD\fP [4]"
+.br
+.ti -1c
+.RI "   uint32_t \fBLUADD\fP"
+.br
+.ti -1c
+.RI "} \fBaddress\fP"
+.br
+.ti -1c
+.RI "union {"
+.br
+.ti -1c
+.RI "   struct {"
+.br
+.ti -1c
+.RI "      uint8_t \fBRSV\fP: 4"
+.br
+.ti -1c
+.RI "      uint8_t \fBCMD\fP: 4"
+.br
+.ti -1c
+.RI "   } "
+.br
+.ti -1c
+.RI "   uint8_t \fBPLD\fP [BUFFERSIZE]"
+.br
+.ti -1c
+.RI "}; "
+.br
+.ti -1c
+.RI "union {"
+.br
+.ti -1c
+.RI "   uint8_t \fBCRC\fP [2]"
+.br
+.ti -1c
+.RI "   uint16_t \fBLCRC\fP"
+.br
+.ti -1c
+.RI "} \fBcrc\fP"
+.br
+.in -1c
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Arduino-PNCP from the source code\&.
