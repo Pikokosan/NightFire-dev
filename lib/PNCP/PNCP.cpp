@@ -357,21 +357,21 @@ void PNCP::recieve()
 
         }else{
           this->_PFI = 0;
-          this->_status = CRC;
+          this->_status = CRC_P;
 
 
         }
 
       }
 
-      if(this->_status == CRC)
+      if(this->_status == CRC_P)
       {
         // CRC command loop.
         //_serial->println("CRC called");
 
         if(this->_CRCCount != 2)
         {
-          this->frame.crc.CRC[this->_CRCCount] = data;
+          this->frame.crc.BCRC[this->_CRCCount] = data;
           this->_CRCCount++;
           if(this->_CRCCount != 2)
           {
@@ -612,7 +612,7 @@ void bufferwait(){
 
   #endif
 
-  #if defined(__bluepill_f103c8__)
+  #if defined(__stm32f103c8t6__)
     usart_reg_map *regs = USART1->regs;
     while ( !(regs->SR & USART_SR_TC) ); // Wait for Transmission Complete to set
   #endif

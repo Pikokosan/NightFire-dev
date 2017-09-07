@@ -52,7 +52,7 @@ public:
 
       };
       */
-      uint8_t CRC[2];
+      uint8_t BCRC[2];
       uint16_t LCRC;
     }crc;  // CRC 16bit
   }frame;
@@ -77,11 +77,13 @@ public:
 
 
 private:
+  enum packet_status_t : uint8_t {SYNC,HEADER,ADDRESS,PAYLOAD,CRC_P,SUBPAYLOAD};
+  enum packet_status_t _status;
   uint8_t _DE_pin;
   uint8_t _RE_pin;
 
   uint8_t _addresslength;
-  uint8_t _status;
+  //uint8_t _status;
   uint32_t _UADD;
   uint8_t _GADD;
   uint8_t _PFI;
@@ -109,7 +111,8 @@ private:
 
 
 
-  enum packet_status_t {SYNC,HEADER,ADDRESS,PAYLOAD,CRC, SUBPAYLOAD};
+  
+
   bool _addressed;
   bool _discover;
   bool _sync;
