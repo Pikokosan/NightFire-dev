@@ -1,7 +1,9 @@
 #include <Arduino.h>
 #include <PNCP.h>
+#include <PNCPAPPL.h>
 #include <EEPROM.h>
 #include <Battery.h>
+#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
   #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
   #include <avr/wdt.h>
@@ -39,7 +41,12 @@ String Version = "0.1PNCP";
 #define GETVOLTAGE 0xC2
 #define SETCUESCHEDULE 0xC3
 
-#define testled 13
+#if defined(MCU_STM32F103C8)
+  #define testled PC13
+#endif
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
+  #define testled 13
+#endif
 
 
 
@@ -73,7 +80,13 @@ LiquidCrystal_I2C lcd(0x3F,16,2);  // set the LCD address to 0x3F for a 16 chars
  *   +--------+---------+ GND
  *
  **/
-Battery battery(11200, 12600, A1);
+#if defined(MCU_STM32F103C8)
+  Battery battery(11200, 12600, PA0);
+#endif
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
+  Battery battery(11200, 12600, A1);
+#endif
+
 //Battery battery()
 
 //Custom lcd Char
@@ -110,6 +123,13 @@ byte batlow[8] ={
 
 long EEPROMReadlong(long address);
 void LCDSetup();
+void fire(uint8_t cue);
+void callbacksetup();
+void report();
+void SetPulse(uint8_t pulse);
+
+
+
 
 
 
@@ -122,21 +142,34 @@ void EEPROMWritelong(int address, long value);
 PNCP DLL(EEPROM.read(5),EEPROMReadlong(6));
 #endif
 
+PNCPAPPL APPL(DLL);
+
 
 
 
 
 void setup()
 {
-  DLL.begin(115200);
+
+  callbacksetup();
+  DLL.begin(115200,1);
   battery.begin(5000, 3.2);
   pinMode(13, OUTPUT);
+  pinMode(testled,OUTPUT);
+  Wire.begin();
+  Wire.beginTransmission(0x40);
+  Wire.write(0x00);                   // select the IODIR register
+  Wire.write(0xff);                   // set register value-all high, sets all pins as outputs on MCP23008
+  Wire.endTransmission();            // stop talking to the devicevice
   //EEPROM.update(6,10);
+  //digitalWrite(testled,HIGH);
   #ifdef firstrun
   EEPROM.update(5, firstGADD);
   EEPROMWritelong(6, firstUADD);
   EEPROMWritelong(1, firstCapabilities);
   #endif
+  delay(500);
+  digitalWrite(testled, LOW);
   LCDSetup();
   #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
   wdt_enable(WDTO_2S);
@@ -144,14 +177,12 @@ void setup()
 #endif
 
 
+
 }
 
 void loop()
 {
 
-  //delay(500);
-  //digitalWrite(PC13, LOW);
-  //Serial.println(battery.level());
 
   if(battery.level() < 25)
   {
@@ -175,8 +206,13 @@ void loop()
 
   }
 
+  APPL.update();
+  EEPROM.update(5,DLL.getGADD());
+
+
+  /*---------------------OLD APPLICATION LAYER----------------------------
+
   DLL.update();
-  //Serial.println("looping");
   #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
   wdt_reset();
   #endif
@@ -207,9 +243,10 @@ if(DLL.available())
     {
       uint8_t cue = DLL.frame.PLD[0] <<2;
       cue = cue >>2;
-
+      fire(cue);
       switch(cue)
       {
+
         case 1:
           digitalWrite(12,HIGH);
           delay(pulsewidth);
@@ -279,7 +316,9 @@ if(DLL.available())
 
 
 }
+
 }
+*/
 }
 
 
@@ -342,5 +381,83 @@ void LCDSetup()
   lcd.leftToRight();
   lcd.setCursor(0,1);
   lcd.print("UADD: ");
+
+}
+
+void callbacksetup()
+{
+  APPL.setHandleSinglecue(fire);
+  APPL.setHandleReport(report);
+  APPL.setHandleSetPulse(SetPulse);
+}
+
+
+void report()
+{
+  long capabilities = EEPROMReadlong(1);
+  DLL.write((uint8_t*)&capabilities, 4);
+
+}
+
+void SetPulse(uint8_t pulse)
+{
+  pulsewidth = DLL.frame.PLD[1];
+  Serial.print("pulse width = ");
+  Serial.println(pulsewidth,DEC);
+  EEPROM.update(6,pulsewidth);
+}
+
+
+void fire(uint8_t cue)
+{
+  switch(cue)
+  {
+
+    case 1:
+      digitalWrite(12,HIGH);
+      delay(pulsewidth);
+      digitalWrite(12, LOW);
+    break;
+
+    case 2:
+    digitalWrite(testled, HIGH);
+    delay(pulsewidth);
+    digitalWrite(testled,LOW);
+    break;
+
+  }
+  uint8_t address = 0x40;
+  uint8_t truecue = 0x01;
+  cue = cue - 1;
+
+  if( cue < 8 )
+  {
+    address++;
+    cue = cue -8;
+
+  }
+  if( cue < 16 )
+  {
+    address++;
+    cue = cue - 8;
+  }
+
+  if( cue < 24 ){
+    address++;
+    cue = cue - 8;
+  }
+  truecue = truecue << cue;
+
+
+  Wire.beginTransmission(address);
+  Wire.write(0x09);
+  Wire.write(truecue);
+  Wire.endTransmission(address);
+  delay(pulsewidth);
+  Wire.beginTransmission(address);
+  Wire.write(0x09);
+  Wire.write(0x00);
+  Wire.endTransmission();
+
 
 }

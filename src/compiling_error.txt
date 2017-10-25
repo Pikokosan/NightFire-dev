@@ -1,4 +1,0 @@
-/Users/Me/Documents/Repos/PNCP/src/main.cpp:1:10: fatal error: 'Arduino.h' file not found
-#include <Arduino.h>
-         ^
-1 error generated.
