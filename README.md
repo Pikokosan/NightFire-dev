@@ -1,4 +1,4 @@
-NightFire Rev 4 development board firmware.
+NightFire Rev 4 development board firmware. <img src="https://travis-ci.org/Pikokosan/NightFire-dev.svg?branch=master" alt="Build Status" />
 
 see https://pikokosan.github.io/NightFire-dev/ for Arduino-pncp library info
 
