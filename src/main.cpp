@@ -5,6 +5,8 @@
 #include <Battery.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <Adafruit_MCP23008.h>
+
   #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
   #include <avr/wdt.h>
 
@@ -24,7 +26,7 @@
 #define firstUADD         0x14CAC702
 #define firstCapabilities 0xA0050200
 
-String Version = "0.1PNCP";
+String Version = "0.2 PNCP";
 
 
 //high2
@@ -62,6 +64,9 @@ uint8_t pulsewidth = EEPROM.read(10);
 */
 
 LiquidCrystal_I2C lcd(0x3F,16,2);  // set the LCD address to 0x3F for a 16 chars and 2 line display
+Adafruit_MCP23008 mcp;
+
+
 /*
  * 2 cells (2S1P) li-ion/li-poly battery wired to A0, continuous sensing
  *
@@ -152,15 +157,23 @@ void setup()
 {
 
   callbacksetup();
-  DLL.begin(115200,1);
+  #if defined(__AVR_ATmega32U4__)
+    DLL.begin(115200,2);
+  #endif
+  #if defined(__AVR_ATmega328P__)
+    DLL.begin(115200, 1);
+  #endif
   battery.begin(5000, 3.2);
-  pinMode(13, OUTPUT);
-  pinMode(testled,OUTPUT);
-  Wire.begin();
-  Wire.beginTransmission(0x40);
-  Wire.write(0x00);                   // select the IODIR register
-  Wire.write(0xff);                   // set register value-all high, sets all pins as outputs on MCP23008
-  Wire.endTransmission();            // stop talking to the devicevice
+  //pinMode(13, OUTPUT);
+  //pinMode(testled,OUTPUT);
+
+  //setup i2c output pins
+  mcp.begin();      // use default address 0
+  for(int i=0 ; i<7; i++){
+    mcp.pinMode(i, OUTPUT);
+  }
+
+
   //EEPROM.update(6,10);
   //digitalWrite(testled,HIGH);
   #ifdef firstrun
@@ -175,6 +188,12 @@ void setup()
   wdt_enable(WDTO_2S);
 
 #endif
+
+//Wire.begin();
+//Wire.beginTransmission(0x20);
+//Wire.write(0x00);
+//Wire.write(0x00);
+//Wire.endTransmission();
 
 
 
@@ -209,116 +228,6 @@ void loop()
   APPL.update();
   EEPROM.update(5,DLL.getGADD());
 
-
-  /*---------------------OLD APPLICATION LAYER----------------------------
-
-  DLL.update();
-  #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
-  wdt_reset();
-  #endif
-if(DLL.available())
-{
-  //Serial.println("GOT PACKET!!");
-  lcd.setCursor(0,0);
-  lcd.print("GADD:");
-  lcd.setCursor(6,0);
-  lcd.print(DLL.getGADD());
-  EEPROM.update(5, DLL.getGADD());
-
-  uint8_t cmdsize = DLL.frame.PLD[0]>>5;
-  //uint8_t high2 = mac.frame.APPF[0]>>6;
-  //uint8_t high4 = mac.frame.APPF[0] >>4;
-  //uint8_t full8 = mac.frame.APPF[0];
-  uint8_t temp = DLL._Address_type;
-  if(temp == SOFG || temp == SOFU)
-  {
-
-  if(!bitRead(cmdsize,2))
-  {
-    //Serial.print("4bit");
-    //Serial.println(cmdsize,DEC);
-
-    //Fire cue command
-    if(cmdsize>>1 == FIRE)
-    {
-      uint8_t cue = DLL.frame.PLD[0] <<2;
-      cue = cue >>2;
-      fire(cue);
-      switch(cue)
-      {
-
-        case 1:
-          digitalWrite(12,HIGH);
-          delay(pulsewidth);
-          digitalWrite(12, LOW);
-        break;
-
-        case 2:
-        digitalWrite(testled, HIGH);
-        delay(pulsewidth);
-        digitalWrite(testled,LOW);
-        break;
-
-      }
-
-
-    }else{
-      //Multicue command
-
-    }
-    //2 bit command
-  }
-  else if(bitRead(cmdsize,2) && !bitRead(cmdsize,1))
-  {
-    uint8_t temp = DLL.frame.PLD[0]>>4;
-    if(temp == REPORT)
-    {
-      //sends device capabilities to master
-      long capabilities = EEPROMReadlong(1);
-      DLL.write((uint8_t*)&capabilities, 4);
-
-    }
-    //4 bit command
-
-  }
-  else
-  {
-    //Serial.print("8bit");
-    //Serial.println(mac.frame.APPF[0],DEC);
-    switch(DLL.frame.PLD[0])
-        {
-
-          case CHARGECUES:
-          break;
-
-          case SETPULSE:
-          pulsewidth = DLL.frame.PLD[1];
-          //Serial.print("pulse width = ");
-          //Serial.println(pulsewidth,DEC);
-          EEPROM.update(6,pulsewidth);
-          break;
-
-          case GETVOLTAGE:
-          break;
-
-          case SETCUESCHEDULE:
-          for(int i; i > DLL.frame.header.PLI; i++ )
-          {
-
-          }
-
-          break;
-
-        }
-
-    //8 bit command
-  }
-
-
-}
-
-}
-*/
 }
 
 
@@ -401,63 +310,76 @@ void report()
 
 void SetPulse(uint8_t pulse)
 {
-  pulsewidth = DLL.frame.PLD[1];
-  Serial.print("pulse width = ");
-  Serial.println(pulsewidth,DEC);
+  pulsewidth = pulse;
+  //Serial.print("pulse width = ");
+  //Serial.println(pulsewidth,DEC);
   EEPROM.update(6,pulsewidth);
 }
 
 
 void fire(uint8_t cue)
 {
+  //Serial.println("Cue!");
+  /*
   switch(cue)
   {
 
     case 1:
-      digitalWrite(12,HIGH);
+      Serial.println("cue 1");
+      mcp.digitalWrite(0,HIGH);
       delay(pulsewidth);
-      digitalWrite(12, LOW);
+      mcp.digitalWrite(0, LOW);
+      //mcp.writeGPIO(1);
     break;
 
     case 2:
+    Serial.println("cue 2inst");
     digitalWrite(testled, HIGH);
     delay(pulsewidth);
     digitalWrite(testled,LOW);
     break;
 
   }
-  uint8_t address = 0x40;
-  uint8_t truecue = 0x01;
+  */
+  //uint8_t address = 0x20;
+  //uint8_t truecue = 0x01;
   cue = cue - 1;
+  /*
 
-  if( cue < 8 )
+  if( cue > 8 )
   {
     address++;
     cue = cue -8;
 
   }
-  if( cue < 16 )
+  if( cue > 16 )
   {
     address++;
     cue = cue - 8;
   }
 
-  if( cue < 24 ){
+  if( cue > 24 ){
     address++;
     cue = cue - 8;
   }
+
   truecue = truecue << cue;
+  */
 
-
-  Wire.beginTransmission(address);
-  Wire.write(0x09);
-  Wire.write(truecue);
-  Wire.endTransmission(address);
+  mcp.digitalWrite(cue, HIGH);
   delay(pulsewidth);
-  Wire.beginTransmission(address);
-  Wire.write(0x09);
-  Wire.write(0x00);
-  Wire.endTransmission();
+  mcp.digitalWrite(cue, LOW);
+
+  //mcp.writeGPIO(truecue);
+  //Wire.beginTransmission(address);
+  //Wire.write(0x09);
+  //Wire.write(truecue);
+  //Wire.endTransmission();
+  //delay(pulsewidth);
+  //Wire.beginTransmission(address);
+  //Wire.write(0x09);
+  //Wire.write(0x00);
+  //Wire.endTransmission();
 
 
 }
