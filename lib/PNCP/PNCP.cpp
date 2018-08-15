@@ -767,8 +767,10 @@ bool PNCP::write(uint8_t *PLD, uint8_t size)
   //}
   //_serial->write("test");
   _serial->write((byte*)&this->_UADD,sizeof(this->_UADD));
+  //need to add header byte and size calculation
+
   //_serial-write
-  _serial->write(PLD,size);
+  _serial->write((byte*)PLD,size);
   this->_CalCrc =0;
   this->_CalCrc = this->CRC16(frame.address.UADD, 4, this->_CalCrc);
   this->_CalCrc = this->CRC16(PLD, size, this->_CalCrc);

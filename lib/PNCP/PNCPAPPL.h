@@ -17,6 +17,7 @@ public:
   void setHandleReport(void(*fptr)(void));
   void setHandleChargecues(void (*fptr)(void));
   void setHandleSetPulse(void (*fptr)(uint8_t cue));
+  void setHandleCueContinuity(void (*fptr)(void));
 
 
 
@@ -27,6 +28,7 @@ private:
   void (*mSetPulseCallback)(uint8_t pulse);
   void (*mReportCallback)(void);
   void (*mChargecuesCallback)(void);
+  void (*mCueContinuity)(void);
 
 
 
