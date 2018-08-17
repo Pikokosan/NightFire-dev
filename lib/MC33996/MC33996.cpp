@@ -2,23 +2,7 @@
 #include <SPI.h>
 
 
-// Defines to keep logical information symbolic go here
 
-#ifndef HIGH
-#define    HIGH          (1)
-#endif
-
-#ifndef LOW
-#define    LOW           (0)
-#endif
-
-#ifndef ON
-#define    ON            (1)
-#endif
-
-#ifndef OFF
-#define    OFF           (0)
-#endif
 
 
 //#define CLOCK_DIVIDER    (4)
@@ -34,18 +18,25 @@
 
 
 
-MC33996::MC33996(uint8_t CSpin)
+MC33996::MC33996(uint8_t CSpin, uint8_t Restpin)
 {
-  _modeCache        = CMD_ON_OFF; //default cmd
+  _modeCache        = 0x00; //default cmd
   _outputCache      = 0x0000;
   _CSpin            = CSpin;
+  _Resetpin         = Restpin;
   _global_shutdown  = OP_GLOBAL_SHUTDOWN;
   mFaultCallback    = 0;
 };
 
 void MC33996::begin(){
-  pinMode(_CSpin,OUTPUT);
-  digitalWrite(_CSpin, HIGH);
+  //Serial.begin(115200);
+  ::pinMode(_CSpin,OUTPUT);
+  ::pinMode(_Resetpin,OUTPUT);
+  ::digitalWrite(_CSpin, HIGH);
+  ::digitalWrite(_Resetpin,LOW);
+  delay(100);
+  ::digitalWrite(_Resetpin, HIGH);
+  delay(100);
 
   SPI.begin();
   SPI.setClockDivider(SPI_CLOCK_DIV4);
@@ -58,10 +49,11 @@ void MC33996::begin(){
 void MC33996::write(uint8_t reg, uint16_t value)
 {
   //SPI.beginTransaction();
-  digitalWrite(_CSpin, LOW);
+  ::digitalWrite(_CSpin, LOW);
   _modeCache   = SPI.transfer(reg);
   _outputCache = SPI.transfer16(value);
-  digitalWrite(_CSpin, HIGH);
+  ::digitalWrite(_CSpin, HIGH);
+  //Serial.println("DEBUG:Wrote command");
 
   _modeCache = 0;
   _outputCache = 0;
@@ -72,6 +64,7 @@ void MC33996::write(uint8_t reg, uint16_t value)
 
 void MC33996::enableContinutyDetection()
 {
+  //Serial.println("DEBUG:Enabled detection");
   write(OP_OPENLOAD_EN,CMD_ALL_ON);
 }
 
@@ -101,11 +94,15 @@ void MC33996::setThermal(bool value)
 void MC33996::continutyDetection()
 {
 
-  digitalWrite(_CSpin, LOW);
+  ::digitalWrite(_CSpin, LOW);
   _modeCache   = SPI.transfer(CMD_ON_OFF);
   _outputCache = SPI.transfer16(CMD_NULL);//turn off all cues
-  digitalWrite(_CSpin, HIGH);
-  if (_modeCache != 0x00){if (mFaultCallback !=0) mFaultCallback(_modeCache,_outputCache);}
+  ::digitalWrite(_CSpin, HIGH);
+  //Serial.print("debug modecache= ");
+  //Serial.print(_modeCache,BIN);
+  //Serial.print(" Debug outputCache= ");
+  //Serial.println(_outputCache,BIN);
+  if(_modeCache != 0x00) {if (mFaultCallback !=0) mFaultCallback(_modeCache,_outputCache);}
   _modeCache   = 0;
   _outputCache = 0;
   //value = _loadDection+header;

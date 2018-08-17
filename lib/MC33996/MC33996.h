@@ -7,7 +7,7 @@
 class MC33996{
   public:
 
-    MC33996(uint8_t);
+    MC33996(uint8_t,uint8_t);
     void begin();
   //void digitalWrite(uint8_t p, uint8_t d);
 
@@ -25,6 +25,7 @@ class MC33996{
     uint8_t   _modeCache;
     uint16_t  _outputCache;
     uint8_t   _CSpin;
+    uint8_t   _Resetpin;
     uint8_t   _global_shutdown;
     void (*mFaultCallback)(uint8_t fault, uint16_t registry);
 
