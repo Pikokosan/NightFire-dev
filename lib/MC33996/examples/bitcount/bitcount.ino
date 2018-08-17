@@ -1,8 +1,9 @@
 #include <MC33996.h>
 
 #define CHIPSELECT (10) //chip select pin.
+#define RESETPIN   (9) //Chip reset pin.
 
-MC33996 mc(CHIPSELECT);
+MC33996 mc(CHIPSELECT,RESETPIN);
 
 void setup() {
   mc.begin();
