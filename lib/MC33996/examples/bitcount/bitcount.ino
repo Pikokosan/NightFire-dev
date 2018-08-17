@@ -18,9 +18,9 @@ void loop() {
     }
     for(int i=0; i<=16; i++)
     {
-      mc.digitalWrite(i, ON);
+      mc.digitalWrite(i, HIGH);
       delay(200);
-      mc.digitalWrite(i, OFF);
+      mc.digitalWrite(i, LOW);
     }
    delay(1000);
 
