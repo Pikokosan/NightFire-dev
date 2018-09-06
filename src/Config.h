@@ -34,5 +34,6 @@
 #define SOFB 0x55 // Boadcast
 #define SOFG 0x47 // Group address
 #define SOFU 0x78 // Unique address
+#define SOFR 0x6A // Responce
 */
 //*******************End packet information******************//

@@ -50,13 +50,13 @@ void MC33996::write(uint8_t reg, uint16_t value)
 {
   //SPI.beginTransaction();
   ::digitalWrite(_CSpin, LOW);
-  _modeCache   = SPI.transfer(reg);
-  _outputCache = SPI.transfer16(value);
+  SPI.transfer(reg);
+  SPI.transfer16(value);
   ::digitalWrite(_CSpin, HIGH);
   //Serial.println("DEBUG:Wrote command");
 
-  _modeCache = 0;
-  _outputCache = 0;
+  //_modeCache = 0;
+  //_outputCache = 0;
 
 
   //SPI.beginTransaction();
@@ -66,6 +66,7 @@ void MC33996::enableContinutyDetection()
 {
   //Serial.println("DEBUG:Enabled detection");
   write(OP_OPENLOAD_EN,CMD_ALL_ON);
+  //write(CMD_ON_OFF  ,CMD_NULL);
 }
 
 void MC33996::setOvervoltage(bool value)
@@ -93,6 +94,11 @@ void MC33996::setThermal(bool value)
 
 void MC33996::continutyDetection()
 {
+  //read twice to avoid false positives
+  ::digitalWrite(_CSpin, LOW);
+  SPI.transfer(CMD_ON_OFF);
+  SPI.transfer16(CMD_NULL);//turn off all cues
+  ::digitalWrite(_CSpin, HIGH);
 
   ::digitalWrite(_CSpin, LOW);
   _modeCache   = SPI.transfer(CMD_ON_OFF);
@@ -102,7 +108,7 @@ void MC33996::continutyDetection()
   //Serial.print(_modeCache,BIN);
   //Serial.print(" Debug outputCache= ");
   //Serial.println(_outputCache,BIN);
-  if(_modeCache != 0x00) {if (mFaultCallback !=0) mFaultCallback(_modeCache,_outputCache);}
+  if(_modeCache) {if (mFaultCallback !=0) mFaultCallback(_modeCache,_outputCache);}
   _modeCache   = 0;
   _outputCache = 0;
   //value = _loadDection+header;
@@ -116,12 +122,13 @@ void MC33996::continutyDetection()
 void MC33996::digitalWrite(uint8_t pin, uint8_t value)
 {
   if (pin < 1 | pin > 16) return;
-  if (pin < 1 | pin > 16) return;
+  //if (pin < 1 | pin > 16) return;
   if (value) {
     _outputCache |= 1 << (pin - 1);
   } else {
     _outputCache &= ~(1 << (pin - 1));
   }
+  Serial.println(_outputCache,BIN);
   write(CMD_ON_OFF, _outputCache);
 
 }

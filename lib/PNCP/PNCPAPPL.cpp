@@ -137,7 +137,7 @@ void PNCPAPPL::update()
       if(!bitRead(cmdsize,6))
       {
         uint8_t cue = DLL.frame.PLD[0] <<2;
-        cue = cue >>2;
+        cue = cue >>2; 
         if (mSinglecueCallback != 0)              mSinglecueCallback(cue/*cue number*/);
 
 
@@ -163,6 +163,7 @@ void PNCPAPPL::update()
 
           case ReportCueConinuity:
             if (mCueContinuity !=0)               mCueContinuity();
+            //DLL.write(uint8_t *PLD, uint8_t size)
           break;
 
           case ReportCueResistance:

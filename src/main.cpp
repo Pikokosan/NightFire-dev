@@ -19,7 +19,7 @@
 //MC33996 instance
 #if defined(USE_MC33996)
   #include <MC33996.h>
-  MC33996 outputCtrl(10);//Define instance and CS pin
+  MC33996 outputCtrl(10,9);//Define instance and CS pin
 #endif
 
 //PNCP DLL;
@@ -154,7 +154,7 @@ void setup()
   _GADD = DLL.getGADD();
   _UADD = DLL.getUADD();
 
-  callbacksetup();
+
   #if defined(__AVR_ATmega32U4__)
     DLL.begin(115200,2);
   #endif
@@ -175,6 +175,7 @@ void setup()
   #if defined(USE_MC33996)
     outputCtrl.enableContinutyDetection();
   #endif
+  callbacksetup();
 
 
   //EEPROM.update(6,10);
@@ -277,7 +278,7 @@ void callbacksetup()
   APPL.setHandleReport(report);
   APPL.setHandleSetPulse(SetPulse);
   #if defined(USE_MC33996) && defined(USE_MC33996_CONTINUITY_CHECK)
-
+    Serial.println("Continuity check enabled");
     outputCtrl.setFaultReport(callbackOutputfault);
     APPL.setHandleCueContinuity(callbackCuecontinuity);
   #endif
@@ -285,13 +286,40 @@ void callbacksetup()
 
 #if defined(USE_MC33996) && defined(USE_MC33996_CONTINUITY_CHECK)
   void callbackCuecontinuity(){outputCtrl.continutyDetection();}
+
   void callbackOutputfault(uint8_t fault, uint16_t registry)
   {
     //Debug
     Serial.print("Error= ");
     Serial.print(fault, BIN);
     Serial.print(" OUTPUTS= ");
+    Serial.print(registry,BIN);
+    registry = ~registry;
+    Serial.print(" inverted OUTPUTS= ");
     Serial.println(registry,BIN);
+    //uint32_t temp = registry;
+    //temp = temp << 8;
+    union
+    {
+      uint32_t bytes32;
+      uint8_t bytes[3];
+
+    }testing;
+    //test_val testing;
+    testing.bytes32 = registry << 4;
+
+
+    //testing.bytes[0] = (temp >> 0)  & 0xFF;
+    //testing.bytes[1] = (temp >> 8)  & 0xFF;
+    //testing.bytes[2] = (temp >> 16) & 0xFF;
+
+    Serial.println(testing.bytes[2],BIN);
+    Serial.println(testing.bytes[1],BIN);
+    Serial.println(testing.bytes[0],BIN);
+
+    DLL.write(testing.bytes, 3);
+
+
     //do something
   }
 #endif
@@ -315,8 +343,9 @@ void SetPulse(uint8_t pulse)
 
 void fire(uint8_t cue)
 {
+  Serial.print("Firing cue: ");
+  Serial.println(cue,DEC);
 
-  cue = cue - 1;
   outputCtrl.digitalWrite(cue, HIGH);
   delay(pulsewidth);
   outputCtrl.digitalWrite(cue, LOW);
