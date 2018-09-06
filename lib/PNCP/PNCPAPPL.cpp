@@ -57,6 +57,17 @@ void PNCPAPPL::setHandleSinglecue(void (*fptr)(uint8_t cue))    { mSinglecueCall
   */
 void PNCPAPPL::setHandleReport(void (*fptr)(void))              { mReportCallback                 = fptr; }
 
+/*
+//set callback to report function.
+APPL.setHandleReport(report);
+\endcode
+
+ \param Function to be triggered when command received
+ \sa setHandleSinglecue()
+ \sa setHandleChargecues()
+ \sa setHandleSetPulse()
+*/
+void PNCPAPPL::setHandleCueContinuity(void (*fptr)(void))             { mCueContinuity                  = fptr; }
 /*!
   \brief charge cue handle
   \details This is used to set the callback for charge cue commands in a capacitive discharge system
@@ -86,7 +97,7 @@ void PNCPAPPL::setHandleSetPulse(void (*fptr)(uint8_t pulse))   { mSetPulseCallb
    PNCP DLL(firstGADD, firstUADD);
    PNCPAPPL APPL(DLL);
    \endcode
-  
+
    \param DLL PNCP data link layer passthru
    \sa PNCP()
   */
@@ -96,6 +107,7 @@ PNCPAPPL::PNCPAPPL(PNCP& _DLL):DLL(_DLL)
   mReportCallback       = 0;
   mChargecuesCallback   = 0;
   mSetPulseCallback     = 0;
+  mCueContinuity        = 0;
 
 }
 
@@ -125,7 +137,7 @@ void PNCPAPPL::update()
       if(!bitRead(cmdsize,6))
       {
         uint8_t cue = DLL.frame.PLD[0] <<2;
-        cue = cue >>2;
+        cue = cue >>2; 
         if (mSinglecueCallback != 0)              mSinglecueCallback(cue/*cue number*/);
 
 
@@ -150,6 +162,8 @@ void PNCPAPPL::update()
           break;
 
           case ReportCueConinuity:
+            if (mCueContinuity !=0)               mCueContinuity();
+            //DLL.write(uint8_t *PLD, uint8_t size)
           break;
 
           case ReportCueResistance:

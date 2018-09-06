@@ -1,0 +1,29 @@
+#######################################
+# Syntax Coloring Map For MCP
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+#######################################
+# Methods and Functions (KEYWORD1)
+#######################################
+
+begin         KEYWORD1
+write         KEYWORD1
+setOvervoltage         KEYWORD1
+setThermal         KEYWORD1
+enableOpenload         KEYWORD1
+loadDetect         KEYWORD1
+
+#######################################
+# Instances (KEYWORD2)
+#######################################
+
+MC33996         KEYWORD2
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
