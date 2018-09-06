@@ -603,6 +603,7 @@ return afli;
 }
 
 void bufferwait(){
+
   #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
     #if defined(UBRR0H)
       while (!(UCSR0A & (1<<UDRE0)))   //  Wait for empty transmit buffer
@@ -612,7 +613,8 @@ void bufferwait(){
 
   #endif
 
-  #if defined(__stm32f103c8t6__)
+  #if defined(__STM32F103C8T6__)
+    Serial.println("Waiting to finish sending");
     usart_reg_map *regs = USART1->regs;
     while ( !(regs->SR & USART_SR_TC) ); // Wait for Transmission Complete to set
   #endif
@@ -715,36 +717,15 @@ while(tloop<20){
 */
 bool PNCP::write(uint8_t *PLD, uint8_t size)
 {
-  uint8_t temp;
+  //uint8_t temp;
   //if(this->_GSlot<0)
   //{
     unsigned long seed=seedOut(31);
-    //Serial.print("seed = ");
-    //Serial.print(seed);
-    // now show sequence
+
     randomSeed(seed);
     this->_GSlot = random(1,100);
 
-  //}
-  // create 31 bit seed and show value, random results
-  //unsigned long seed=seedOut(31);
-  //Serial.print("seed = ");
-  //Serial.print(seed);
-  // now show sequence
-  //randomSeed(seed);
-  /*Serial.print(" random (1-99) = ");
-  for (int i=0;i<20;++i)
-  {
-    Serial.print(random(1,100));
-    Serial.print(" ");
-  }
-  Serial.print('n');
-  */
 
-  //if(_serial->available())
-  //{
-  //  return false;
-  //}
   uint8_t dump = _serial->read();
   delay(this->_GSlot * 3);
   while(dump < 0){
@@ -767,10 +748,29 @@ bool PNCP::write(uint8_t *PLD, uint8_t size)
   //}
   //_serial->write("test");
   _serial->write((byte*)&this->_UADD,sizeof(this->_UADD));
+  //need to add header byte and size calculation
+  union{
+    struct{
+      uint8_t CF  : 1;  // CRC flag
+      uint8_t RSV : 1;  // Reserved
+      uint8_t PT  : 1;  // payload type
+      uint8_t PLI : 4;  // payload length index
+      uint8_t FV  : 1;  // frame version
+    };
+    uint8_t PRMS;
+  }write_header;
+  write_header.CF = true;
+  write_header.PT = true;
+  write_header.FV = false;
+  write_header.PLI = PFLCal(size);
+
+  _serial->write(write_header.PRMS);
+
   //_serial-write
-  _serial->write(PLD,size);
+  _serial->write((byte*)PLD,size);
   this->_CalCrc =0;
   this->_CalCrc = this->CRC16(frame.address.UADD, 4, this->_CalCrc);
+  this->_CalCrc = this->CRC16((byte*)&write_header.PRMS, 1, this->_CalCrc);
   this->_CalCrc = this->CRC16(PLD, size, this->_CalCrc);
   _serial->write((byte*)&this->_CalCrc,sizeof(this->_CalCrc));
   //this->_CalCrc = 0;

@@ -5,43 +5,33 @@
 #include <Battery.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include <Adafruit_MCP23008.h>
+#include "Config.h"
 
-  #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
+
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
   #include <avr/wdt.h>
-
 #endif
 
-
+#if defined(USE_MCP23008)
+  #include <Adafruit_MCP23008.h>
+  Adafruit_MCP23008 outputCtrl;
+#endif
+//MC33996 instance
+#if defined(USE_MC33996)
+  #include <MC33996.h>
+  MC33996 outputCtrl(10,9);//Define instance and CS pin
+#endif
 
 //PNCP DLL;
 
-#define SOFB 0x55 // Boadcast
-#define SOFG 0x47 // Group address
-#define SOFU 0x78 // Unique address
-//Uncomment to set up the devices eeprom. then comment and reflash
-// Pikoko Unique address 0x14CAC701-FF
-//#define firstrun
-#define firstGADD         0x01
-#define firstUADD         0x14CAC702
-#define firstCapabilities 0xA0050200
-
-String Version = "0.2 PNCP";
 
 
-//high2
-#define FIRE 0x00
-#define FIREMULTI 0x01
-//high4
-#define TIME 0x08
-#define REPORT 0x09
-#define REPORTCONT 0x0A
-#define REPORTRES 0x0B
-//full8
-#define CHARGECUES 0xC0
-#define SETPULSE 0xC1
-#define GETVOLTAGE 0xC2
-#define SETCUESCHEDULE 0xC3
+String Version = "0.3 PNCP";
+
+uint8_t _GADD;
+uint32_t _UADD;
+
+
 
 #if defined(MCU_STM32F103C8)
   #define testled PC13
@@ -64,7 +54,7 @@ uint8_t pulsewidth = EEPROM.read(10);
 */
 
 LiquidCrystal_I2C lcd(0x3F,16,2);  // set the LCD address to 0x3F for a 16 chars and 2 line display
-Adafruit_MCP23008 mcp;
+
 
 
 /*
@@ -132,6 +122,12 @@ void fire(uint8_t cue);
 void callbacksetup();
 void report();
 void SetPulse(uint8_t pulse);
+void batteryCheck();
+#if defined(USE_MC33996) && defined(USE_MC33996_CONTINUITY_CHECK)
+  void callbackOutputfault(uint8_t fault, uint16_t registry);
+  void callbackCuecontinuity();
+#endif
+
 
 
 
@@ -139,12 +135,12 @@ void SetPulse(uint8_t pulse);
 
 
 #ifdef firstrun
-//DLL (Group address, Unique address)
-PNCP DLL(firstGADD, firstUADD);
-void EEPROMWritelong(int address, long value);
+  //DLL (Group address, Unique address)
+  PNCP DLL(firstGADD, firstUADD);
+  void EEPROMWritelong(int address, long value);
 #else
-//DLL (Group address, Unique address)
-PNCP DLL(EEPROM.read(5),EEPROMReadlong(6));
+  //DLL (Group address, Unique address)
+  PNCP DLL(EEPROM.read(5),EEPROMReadlong(6));
 #endif
 
 PNCPAPPL APPL(DLL);
@@ -155,8 +151,10 @@ PNCPAPPL APPL(DLL);
 
 void setup()
 {
+  _GADD = DLL.getGADD();
+  _UADD = DLL.getUADD();
 
-  callbacksetup();
+
   #if defined(__AVR_ATmega32U4__)
     DLL.begin(115200,2);
   #endif
@@ -168,34 +166,31 @@ void setup()
   //pinMode(testled,OUTPUT);
 
   //setup i2c output pins
-  mcp.begin();      // use default address 0
+  outputCtrl.begin();
+  #if defined(USE_MCP23008)
   for(int i=0 ; i<7; i++){
-    mcp.pinMode(i, OUTPUT);
+    outputCtrl.pinMode(i, OUTPUT);
   }
+  #endif
+  #if defined(USE_MC33996)
+    outputCtrl.enableContinutyDetection();
+  #endif
+  callbacksetup();
 
 
   //EEPROM.update(6,10);
   //digitalWrite(testled,HIGH);
   #ifdef firstrun
-  EEPROM.update(5, firstGADD);
-  EEPROMWritelong(6, firstUADD);
-  EEPROMWritelong(1, firstCapabilities);
+    EEPROM.update(5, firstGADD);
+    EEPROMWritelong(6, firstUADD);
+    EEPROMWritelong(1, firstCapabilities);
   #endif
   delay(500);
   digitalWrite(testled, LOW);
   LCDSetup();
   #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
-  wdt_enable(WDTO_2S);
-
-#endif
-
-//Wire.begin();
-//Wire.beginTransmission(0x20);
-//Wire.write(0x00);
-//Wire.write(0x00);
-//Wire.endTransmission();
-
-
+    wdt_enable(WDTO_2S);
+  #endif
 
 }
 
@@ -203,30 +198,14 @@ void loop()
 {
 
 
-  if(battery.level() < 25)
-  {
-    lcd.setCursor(15,0);
-    lcd.write(3);
-    lcd.setCursor(0,0);
-
-  }
-  else if(battery.level() < 50)
-  {
-    lcd.setCursor(15,0);
-    lcd.write(2);
-    lcd.setCursor(0,0);
-
-  }
-  else
-  {
-    lcd.setCursor(15,0);
-    lcd.write(1);
-    lcd.setCursor(0,0);
-
-  }
-
+  batteryCheck();
   APPL.update();
-  EEPROM.update(5,DLL.getGADD());
+  uint8_t temp = DLL.getGADD();
+  if(temp != _GADD)
+  {
+    EEPROM.update(5,temp);
+    _GADD = temp;
+  }
 
 }
 
@@ -298,13 +277,58 @@ void callbacksetup()
   APPL.setHandleSinglecue(fire);
   APPL.setHandleReport(report);
   APPL.setHandleSetPulse(SetPulse);
+  #if defined(USE_MC33996) && defined(USE_MC33996_CONTINUITY_CHECK)
+    Serial.println("Continuity check enabled");
+    outputCtrl.setFaultReport(callbackOutputfault);
+    APPL.setHandleCueContinuity(callbackCuecontinuity);
+  #endif
 }
 
+#if defined(USE_MC33996) && defined(USE_MC33996_CONTINUITY_CHECK)
+  void callbackCuecontinuity(){outputCtrl.continutyDetection();}
 
+  void callbackOutputfault(uint8_t fault, uint16_t registry)
+  {
+    //Debug
+    Serial.print("Error= ");
+    Serial.print(fault, BIN);
+    Serial.print(" OUTPUTS= ");
+    Serial.print(registry,BIN);
+    registry = ~registry;
+    Serial.print(" inverted OUTPUTS= ");
+    Serial.println(registry,BIN);
+    //uint32_t temp = registry;
+    //temp = temp << 8;
+    union
+    {
+      uint32_t bytes32;
+      uint8_t bytes[3];
+
+    }testing;
+    //test_val testing;
+    testing.bytes32 = registry << 4;
+
+
+    //testing.bytes[0] = (temp >> 0)  & 0xFF;
+    //testing.bytes[1] = (temp >> 8)  & 0xFF;
+    //testing.bytes[2] = (temp >> 16) & 0xFF;
+
+    Serial.println(testing.bytes[2],BIN);
+    Serial.println(testing.bytes[1],BIN);
+    Serial.println(testing.bytes[0],BIN);
+
+    DLL.write(testing.bytes, 3);
+
+
+    //do something
+  }
+#endif
 void report()
 {
   long capabilities = EEPROMReadlong(1);
-  DLL.write((uint8_t*)&capabilities, 4);
+  Serial.print("capabilities = ");
+  Serial.println(capabilities,DEC);
+   DLL.write((uint8_t*)&capabilities, 4);
 
 }
 
@@ -319,67 +343,36 @@ void SetPulse(uint8_t pulse)
 
 void fire(uint8_t cue)
 {
-  //Serial.println("Cue!");
-  /*
-  switch(cue)
-  {
+  Serial.print("Firing cue: ");
+  Serial.println(cue,DEC);
 
-    case 1:
-      Serial.println("cue 1");
-      mcp.digitalWrite(0,HIGH);
-      delay(pulsewidth);
-      mcp.digitalWrite(0, LOW);
-      //mcp.writeGPIO(1);
-    break;
-
-    case 2:
-    Serial.println("cue 2inst");
-    digitalWrite(testled, HIGH);
-    delay(pulsewidth);
-    digitalWrite(testled,LOW);
-    break;
-
-  }
-  */
-  //uint8_t address = 0x20;
-  //uint8_t truecue = 0x01;
-  cue = cue - 1;
-  /*
-
-  if( cue > 8 )
-  {
-    address++;
-    cue = cue -8;
-
-  }
-  if( cue > 16 )
-  {
-    address++;
-    cue = cue - 8;
-  }
-
-  if( cue > 24 ){
-    address++;
-    cue = cue - 8;
-  }
-
-  truecue = truecue << cue;
-  */
-
-  mcp.digitalWrite(cue, HIGH);
+  outputCtrl.digitalWrite(cue, HIGH);
   delay(pulsewidth);
-  mcp.digitalWrite(cue, LOW);
+  outputCtrl.digitalWrite(cue, LOW);
 
-  //mcp.writeGPIO(truecue);
-  //Wire.beginTransmission(address);
-  //Wire.write(0x09);
-  //Wire.write(truecue);
-  //Wire.endTransmission();
-  //delay(pulsewidth);
-  //Wire.beginTransmission(address);
-  //Wire.write(0x09);
-  //Wire.write(0x00);
-  //Wire.endTransmission();
+}
 
+void batteryCheck()
+{
+  if(battery.level() < 25)
+  {
+    lcd.setCursor(15,0);
+    lcd.write(3);
+    lcd.setCursor(0,0);
 
+  }
+  else if(battery.level() < 50)
+  {
+    lcd.setCursor(15,0);
+    lcd.write(2);
+    lcd.setCursor(0,0);
+
+  }
+  else
+  {
+    lcd.setCursor(15,0);
+    lcd.write(1);
+    lcd.setCursor(0,0);
+
+  }
 }
