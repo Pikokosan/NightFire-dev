@@ -120,7 +120,9 @@ void PNCPAPPL::update()
   if (DLL.available()){
     //uint8_t cmdsize = DLL.frame.PLD[0]>>5;
     uint8_t cmdsize = DLL.frame.PLD[0];
-    Serial.print("got a packet");
+    #if defined(APPL_DEBUG)
+      Serial.print("got a packet");
+    #endif
     //uint8_t high2 = mac.frame.APPF[0]>>6;
     //uint8_t high4 = mac.frame.APPF[0] >>4;
     //uint8_t full8 = mac.frame.APPF[0];
@@ -130,14 +132,16 @@ void PNCPAPPL::update()
 
     if(!bitRead(cmdsize,7))
     {
-      Serial.print("4bit");
+      #if defined(APPL_DEBUG)
+        Serial.print("4bit");
+      #endif
       //Serial.println(cmdsize,DEC);
 
       //Fire cue command
       if(!bitRead(cmdsize,6))
       {
         uint8_t cue = DLL.frame.PLD[0] <<2;
-        cue = cue >>2; 
+        cue = cue >>2;
         if (mSinglecueCallback != 0)              mSinglecueCallback(cue/*cue number*/);
 
 

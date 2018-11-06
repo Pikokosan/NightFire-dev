@@ -54,22 +54,22 @@ uint8_t pulsewidth = EEPROM.read(10);
 */
 
 LiquidCrystal_I2C lcd(0x3F,16,2);  // set the LCD address to 0x3F for a 16 chars and 2 line display
-
+//DEBUG_PRINT("LCD Initalized");
 
 
 /*
- * 2 cells (2S1P) li-ion/li-poly battery wired to A0, continuous sensing
+ * 25v max li-ion/li-poly battery wired to A0, continuous sensing
  *
  *   +--------+
  *   |        |
  *   |       +--+
- *   |       |R1| 22k
+ *   |       |R1| 30k
  * -----     |  |
  *           +--+
  *  ---       |---------+ A0
  *   |       +--+
  *   |       |R2|
- *   |       |  | 10k
+ *   |       |  | 7.5k
  *   |       +--+
  *   |        |
  *   +--------+---------+ GND
@@ -84,7 +84,7 @@ LiquidCrystal_I2C lcd(0x3F,16,2);  // set the LCD address to 0x3F for a 16 chars
 
 //Battery battery()
 
-//Custom lcd Char
+//Custom lcd Char for battery
 byte batfull[8] ={
 	0b01110,
 	0b11111,
@@ -278,7 +278,9 @@ void callbacksetup()
   APPL.setHandleReport(report);
   APPL.setHandleSetPulse(SetPulse);
   #if defined(USE_MC33996) && defined(USE_MC33996_CONTINUITY_CHECK)
-    Serial.println("Continuity check enabled");
+    #if defined(MAIN_DEBUG)
+      Serial.println("Continuity check enabled");
+    #endif
     outputCtrl.setFaultReport(callbackOutputfault);
     APPL.setHandleCueContinuity(callbackCuecontinuity);
   #endif
@@ -290,13 +292,18 @@ void callbacksetup()
   void callbackOutputfault(uint8_t fault, uint16_t registry)
   {
     //Debug
-    Serial.print("Error= ");
-    Serial.print(fault, BIN);
-    Serial.print(" OUTPUTS= ");
-    Serial.print(registry,BIN);
-    registry = ~registry;
-    Serial.print(" inverted OUTPUTS= ");
-    Serial.println(registry,BIN);
+    #if defined(MAIN_DEBUG)
+      Serial.print("Error= ");
+      Serial.print(fault, BIN);
+      Serial.print(" OUTPUTS= ");
+      Serial.print(registry,BIN);
+    #endif
+    registry = ~registry;//invert outputs
+
+    #if defined(MAIN_DEBUG)
+      Serial.print(" inverted OUTPUTS= ");
+      Serial.println(registry,BIN);
+    #endif
     //uint32_t temp = registry;
     //temp = temp << 8;
     union
@@ -312,10 +319,11 @@ void callbacksetup()
     //testing.bytes[0] = (temp >> 0)  & 0xFF;
     //testing.bytes[1] = (temp >> 8)  & 0xFF;
     //testing.bytes[2] = (temp >> 16) & 0xFF;
-
-    Serial.println(testing.bytes[2],BIN);
-    Serial.println(testing.bytes[1],BIN);
-    Serial.println(testing.bytes[0],BIN);
+    #if defined(MAIN_DEBUG)
+      Serial.println(testing.bytes[2],BIN);
+      Serial.println(testing.bytes[1],BIN);
+      Serial.println(testing.bytes[0],BIN);
+    #endif
 
     DLL.write(testing.bytes, 3);
 
@@ -326,8 +334,10 @@ void callbacksetup()
 void report()
 {
   long capabilities = EEPROMReadlong(1);
-  Serial.print("capabilities = ");
-  Serial.println(capabilities,DEC);
+  #if defined(MAIN_DEBUG)
+    Serial.print("capabilities = ");
+    Serial.println(capabilities,DEC);
+  #endif
    DLL.write((uint8_t*)&capabilities, 4);
 
 }
@@ -343,8 +353,10 @@ void SetPulse(uint8_t pulse)
 
 void fire(uint8_t cue)
 {
-  Serial.print("Firing cue: ");
-  Serial.println(cue,DEC);
+  #if defined(MAIN_DEBUG)
+    Serial.print("Firing cue: ");
+    Serial.println(cue,DEC);
+  #endif
 
   outputCtrl.digitalWrite(cue, HIGH);
   delay(pulsewidth);

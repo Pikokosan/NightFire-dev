@@ -1,3 +1,6 @@
+//#define APPL_DEBUG
+//#define MAIN_DEBUG
+//#define DEBUG
 //Uncomment to set up the devices eeprom. then comment and reflash
 // Pikoko Unique address 0x14CAC701-FF
 //#define firstrun

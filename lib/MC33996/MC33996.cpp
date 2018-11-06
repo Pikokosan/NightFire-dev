@@ -128,7 +128,9 @@ void MC33996::digitalWrite(uint8_t pin, uint8_t value)
   } else {
     _outputCache &= ~(1 << (pin - 1));
   }
-  Serial.println(_outputCache,BIN);
+  #if defined(MC_DEBUG)
+    Serial.println(_outputCache,BIN);
+  #endif
   write(CMD_ON_OFF, _outputCache);
 
 }
