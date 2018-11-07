@@ -336,7 +336,7 @@ void report()
   long capabilities = EEPROMReadlong(1);
   #if defined(MAIN_DEBUG)
     Serial.print("capabilities = ");
-    Serial.println(capabilities,DEC);
+    Serial.println(capabilities,HEX);
   #endif
    DLL.write((uint8_t*)&capabilities, 4);
 
