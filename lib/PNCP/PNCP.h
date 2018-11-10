@@ -59,7 +59,7 @@ public:
 
 
   PNCP(uint8_t GADD, uint32_t UADD);
-  void begin(long baud, size_t port = 0,uint8_t RE_pin_def = 2, uint8_t DE_pin_def = 3);
+  void begin(long baud, size_t port = 0, uint8_t RE_DE_pin_def = 2);
   //void begin(Stream* serial);
   void update();
   bool available();
@@ -79,8 +79,8 @@ public:
 private:
   enum packet_status_t : uint8_t {SYNC,HEADER,ADDRESS,PAYLOAD,CRC_P,SUBPAYLOAD};
   enum packet_status_t _status;
-  uint8_t _DE_pin;
-  uint8_t _RE_pin;
+  uint8_t _RE_DE_pin;
+  //uint8_t _RE_pin;
 
   uint8_t _addresslength;
   //uint8_t _status;

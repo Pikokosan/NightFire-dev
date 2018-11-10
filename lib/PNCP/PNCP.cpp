@@ -34,21 +34,20 @@ PNCP::PNCP(uint8_t GADD, uint32_t UADD)
     \details This only needs to be called during setup()
     \param baud Baud rate for UART.
     \param port Hardware serial port. Defined 0-4
-    \param RE_pin_def Recieve enable pin used for the rs-485 chip.
-    \param DE_pin_def Data enable pin used for the rs-485 chip.
+    \param RE_DE_pin_def Data enable pin used for the rs-485 chip.
 
 */
 
 
-void PNCP::begin( long baud, size_t port, uint8_t RE_pin_def, uint8_t DE_pin_def)
+void PNCP::begin( long baud, size_t port, uint8_t RE_DE_pin_def)
 {
   this->_timeout  = TIMEOUT;
-  this->_DE_pin = DE_pin_def;
-  this->_RE_pin = RE_pin_def;
-  pinMode(_RE_pin, OUTPUT);
-  pinMode(_DE_pin, OUTPUT);
-  digitalWrite(_RE_pin, LOW);
-  digitalWrite(_DE_pin, LOW);
+  this->_RE_DE_pin = RE_DE_pin_def;
+  //this->_RE_pin = RE_pin_def;
+  //pinMode(_RE_pin, OUTPUT);
+  pinMode(_RE_DE_pin, OUTPUT);
+  //digitalWrite(_RE_pin, LOW);
+  digitalWrite(_RE_DE_pin, LOW);
   switch(port)
         {
         #if defined(UBRR1H)
@@ -118,8 +117,8 @@ bool PNCP::available()
 */
 
 void PNCP::update(){
-  digitalWrite(_DE_pin, LOW);
-  digitalWrite(_RE_pin, LOW);
+  digitalWrite(_RE_DE_pin, LOW);
+  //digitalWrite(_RE_pin, LOW);
   //Serial.println("in the phy idle");
   if(_serial == 0)
     {
@@ -442,10 +441,12 @@ void PNCP::recieve()
         {
           this->_Complete = false;
           this->_CRCCount = 0;
-          _serial->print("bad crc =");
-          _serial->println(this->frame.crc.LCRC,HEX);
-          _serial->print("CRC calculated = ");
-          _serial->println(this->_CalCrc,HEX);
+          #if defined(CRC_DEBUG)
+            _serial->print("bad crc =");
+            _serial->println(this->frame.crc.LCRC,HEX);
+            _serial->print("CRC calculated = ");
+            _serial->println(this->_CalCrc,HEX);
+          #endif
           this->_CalCrc = 0;
           this->_status = SYNC;
           //CRC error
@@ -788,8 +789,8 @@ bool PNCP::write(uint8_t *PLD, uint8_t size)
     dump = _serial->read();
   delay(this->_GSlot * 3);
 }
-  digitalWrite(_DE_pin, HIGH);
-  digitalWrite(_RE_pin, HIGH);
+  digitalWrite(_RE_DE_pin, HIGH);
+  //digitalWrite(_RE_pin, HIGH);
 
   _serial->write(SOFR);
   _serial->write(buf,size+5);//test write
@@ -876,7 +877,7 @@ void PNCP::Subcommands(uint8_t*data, uint8_t size)
 
     case 0x01:
       //Get GADD
-      packet[0] = 1;
+      packet[0] = 0;//ACK/NACk
       packet[1] = this->getGADD();
       this->write(packet,2);
       return;
