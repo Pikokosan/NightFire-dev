@@ -25,7 +25,10 @@ uint8_t type = 1;//test type
 #define Chargecues 0xC0
 #define SetPulseWidth 0xC1
 #define GetVoltage 0xC2
-#define SetCueSchedule 0xC3
+#define SetCueSchedule 0xC4
+
+//Responce types
+#define UMP 0x30
 /*!
   \brief Single cue handle
   \details This is used to set the callback for single cue commands
@@ -89,6 +92,17 @@ void PNCPAPPL::setHandleChargecues(void (*fptr)(void))          { mChargecuesCal
   */
 void PNCPAPPL::setHandleSetPulse(void (*fptr)(uint8_t pulse))   { mSetPulseCallback               = fptr; }
 
+/*!
+  \brief voltage return
+  \details This is used to set the callback for pulsewidth command. which sets how long the cue will be held high
+
+   \param Function to be triggerd when  command received
+   \sa setHandleReport()
+   \sa setHandleChargecues()
+   \sa setHandleSinglecue()
+  */
+void PNCPAPPL::setHandleGetVoltage(uint8_t (*fptr)(void))   { mGetVoltageCallback               = fptr; }
+
 
 /*!
   \brief intialize the library
@@ -108,6 +122,7 @@ PNCPAPPL::PNCPAPPL(PNCP& _DLL):DLL(_DLL)
   mChargecuesCallback   = 0;
   mSetPulseCallback     = 0;
   mCueContinuity        = 0;
+  mGetVoltageCallback   = 0;
 
 }
 
@@ -142,7 +157,8 @@ void PNCPAPPL::update()
       {
         uint8_t cue = DLL.frame.PLD[0] <<2;
         cue = cue >>2;
-        if (mSinglecueCallback != 0)              mSinglecueCallback(cue/*cue number*/);
+        if (mSinglecueCallback != 0){mSinglecueCallback(cue/*cue number*/);}
+        else{ DLL.write(UMP,1);}
 
 
       }else{
@@ -159,14 +175,16 @@ void PNCPAPPL::update()
       {
         case Report:
           //sends device capabilities to master
-          if (mReportCallback != 0)              mReportCallback();
+          if (mReportCallback != 0){mReportCallback();}
+          else{ DLL.write(UMP,1);}
           break;
 
           case ShowTime:
           break;
 
           case ReportCueConinuity:
-            if (mCueContinuity !=0)               mCueContinuity();
+            if (mCueContinuity !=0){mCueContinuity();}
+            else{ DLL.write(UMP,1);}
             //DLL.write(uint8_t *PLD, uint8_t size)
           break;
 
@@ -190,25 +208,28 @@ void PNCPAPPL::update()
           {
 
             case Chargecues:
-            if (mChargecuesCallback != 0)            mChargecuesCallback();
+            if (mChargecuesCallback != 0){mChargecuesCallback();}
+            else{ DLL.write(UMP,1);}
             break;
 
             case SetPulseWidth:
-            if (mSetPulseCallback != 0)            mSetPulseCallback(DLL.frame.PLD[1]);
-            //pulsewidth = DLL.frame.PLD[1];
+            if (mSetPulseCallback != 0) {mSetPulseCallback(DLL.frame.PLD[1]);}
+            else{ DLL.write(UMP,1);}
+            // need to find a good eeprom spot for this
+            //uint8_t = pulsewidth = DLL.frame.PLD[1];
             //Serial.print("pulse width = ");
             //Serial.println(pulsewidth,DEC);
-            //EEPROM.update(6,pulsewidth);
+            //EEPROM.update(11,pulsewidth);
             break;
 
             case GetVoltage:
+            //byte voltage[2];
+              //if(mGetVoltageCallback !=0){ voltage = mGetVoltageCallback();}
+              //else{ DLL.write(UMP,1);}
             break;
 
             case SetCueSchedule:
-            for(int i; i > DLL.frame.header.PLI; i++ )
-            {
 
-            }
 
             break;
 

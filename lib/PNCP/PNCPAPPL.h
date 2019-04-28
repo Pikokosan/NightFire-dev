@@ -18,6 +18,7 @@ public:
   void setHandleChargecues(void (*fptr)(void));
   void setHandleSetPulse(void (*fptr)(uint8_t cue));
   void setHandleCueContinuity(void (*fptr)(void));
+  void setHandleGetVoltage(byte (*fptr)(void));
 
 
 
@@ -29,6 +30,7 @@ private:
   void (*mReportCallback)(void);
   void (*mChargecuesCallback)(void);
   void (*mCueContinuity)(void);
+  void (*mGetVoltageCallback)(void);
 
 
 

@@ -309,7 +309,9 @@ void PNCP::recieve()
         if(this->frame.header.FV)
         {
           //_errorCallback;
-          _serial->println("got header error");
+          #if defined(DLL_DEBUG)
+            _serial->println("got header error");
+          #endif
           this->_status = SYNC;
           return;
         }
@@ -733,6 +735,7 @@ bool PNCP::write(uint8_t *PLD, uint8_t size)
   //uint8_t temp;
   //if(this->_GSlot<0)
   //{
+  //size = 3;
   byte buf[100];
 
 
@@ -752,19 +755,20 @@ bool PNCP::write(uint8_t *PLD, uint8_t size)
   write_header.FV = false;
   write_header.PLI = PFLCal(size);
 
-  this->frame.address.LUADD = _UADD;
+  this->frame.address.LUADD = getUADD();
 
-  buf[0] = this->frame.address.UADD[0];
-  buf[1] = this->frame.address.UADD[1];
-  buf[2] = this->frame.address.UADD[2];
-  buf[3] = this->frame.address.UADD[3];
+  buf[0] = this->frame.address.UADD[3];
+  buf[1] = this->frame.address.UADD[2];
+  buf[2] = this->frame.address.UADD[1];
+  buf[3] = this->frame.address.UADD[0];
   buf[4] = write_header.PRMS;
 
 
-  for(int e = size; e > 0; e--)
+  for(int e = 0; e < size; e++)
   {
     //int d = size-1;
-    buf[e+4] = PLD[size-e];
+    uint8_t test = e+5;
+    buf[test] = PLD[e];
   }
 
   this->_CalCrc =0;
@@ -791,6 +795,7 @@ bool PNCP::write(uint8_t *PLD, uint8_t size)
 }
   digitalWrite(_RE_DE_pin, HIGH);
   //digitalWrite(_RE_pin, HIGH);
+
 
   _serial->write(SOFR);
   _serial->write(buf,size+5);//test write
@@ -877,8 +882,8 @@ void PNCP::Subcommands(uint8_t*data, uint8_t size)
 
     case 0x01:
       //Get GADD
-      packet[0] = 0;//ACK/NACk
-      packet[1] = this->getGADD();
+      packet[1] = 0;//ACK/NACk
+      packet[0] = this->getGADD();
       this->write(packet,2);
       return;
 
