@@ -27,7 +27,7 @@
 <table cellspacing="0" cellpadding="0">
  <tbody>
  <tr style="height: 56px;">
-  <td id="projectlogo"><img alt="Logo" src="icon copy 2.gif"/></td>
+  <td id="projectlogo"><img alt="Logo" src="logo.gif"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Arduino-PNCP
    &#160;<span id="projectnumber">0.2</span>
@@ -102,9 +102,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ade922129d20c574d2a962f3ff0cd4ea3"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_n_c_p.html#ade922129d20c574d2a962f3ff0cd4ea3">PNCP</a> (uint8_t GADD, uint32_t UADD)</td></tr>
 <tr class="memdesc:ade922129d20c574d2a962f3ff0cd4ea3"><td class="mdescLeft">&#160;</td><td class="mdescRight">intialize the library  <a href="#ade922129d20c574d2a962f3ff0cd4ea3">More...</a><br /></td></tr>
 <tr class="separator:ade922129d20c574d2a962f3ff0cd4ea3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae37424d9ee5f2232e0fc1f3d9e81f0ad"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_n_c_p.html#ae37424d9ee5f2232e0fc1f3d9e81f0ad">begin</a> (long baud, size_t port=0, uint8_t RE_pin_def=2, uint8_t DE_pin_def=3)</td></tr>
-<tr class="memdesc:ae37424d9ee5f2232e0fc1f3d9e81f0ad"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used to setup the rs-485 chip.  <a href="#ae37424d9ee5f2232e0fc1f3d9e81f0ad">More...</a><br /></td></tr>
-<tr class="separator:ae37424d9ee5f2232e0fc1f3d9e81f0ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a284a13263432eb25bfd2c1b99f4e56ca"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_n_c_p.html#a284a13263432eb25bfd2c1b99f4e56ca">begin</a> (long baud, size_t port=0, uint8_t RE_DE_pin_def=2)</td></tr>
+<tr class="memdesc:a284a13263432eb25bfd2c1b99f4e56ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used to setup the rs-485 chip.  <a href="#a284a13263432eb25bfd2c1b99f4e56ca">More...</a><br /></td></tr>
+<tr class="separator:a284a13263432eb25bfd2c1b99f4e56ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab292e3b595289320a03ed6179750942d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_p_n_c_p.html#ab292e3b595289320a03ed6179750942d">update</a> ()</td></tr>
 <tr class="memdesc:ab292e3b595289320a03ed6179750942d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Collects and decodes packets.  <a href="#ab292e3b595289320a03ed6179750942d">More...</a><br /></td></tr>
 <tr class="separator:ab292e3b595289320a03ed6179750942d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -204,8 +204,8 @@ uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>_Address_type</b><
 
 </div>
 </div>
-<a id="ae37424d9ee5f2232e0fc1f3d9e81f0ad"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae37424d9ee5f2232e0fc1f3d9e81f0ad">&#9670;&nbsp;</a></span>begin()</h2>
+<a id="a284a13263432eb25bfd2c1b99f4e56ca"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a284a13263432eb25bfd2c1b99f4e56ca">&#9670;&nbsp;</a></span>begin()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -226,13 +226,7 @@ uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>_Address_type</b><
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">uint8_t&#160;</td>
-          <td class="paramname"><em>RE_pin_def</em> = <code>2</code>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">uint8_t&#160;</td>
-          <td class="paramname"><em>DE_pin_def</em> = <code>3</code>&#160;</td>
+          <td class="paramname"><em>RE_DE_pin_def</em> = <code>2</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -247,8 +241,7 @@ uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>_Address_type</b><
   <table class="params">
     <tr><td class="paramname">baud</td><td>Baud rate for UART. </td></tr>
     <tr><td class="paramname">port</td><td>Hardware serial port. Defined 0-4 </td></tr>
-    <tr><td class="paramname">RE_pin_def</td><td>Recieve enable pin used for the rs-485 chip. </td></tr>
-    <tr><td class="paramname">DE_pin_def</td><td>Data enable pin used for the rs-485 chip. </td></tr>
+    <tr><td class="paramname">RE_DE_pin_def</td><td>Data enable pin used for the rs-485 chip. </td></tr>
   </table>
   </dd>
 </dl>
@@ -429,8 +422,8 @@ uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>_Address_type</b><
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>lib/PNCP/<a class="el" href="_p_n_c_p_8h_source.html">PNCP.h</a></li>
-<li>lib/PNCP/PNCP.cpp</li>
+<li>/Users/me/Documents/Repos/NightFire/lib/PNCP/<a class="el" href="_p_n_c_p_8h_source.html">PNCP.h</a></li>
+<li>/Users/me/Documents/Repos/NightFire/lib/PNCP/PNCP.cpp</li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->

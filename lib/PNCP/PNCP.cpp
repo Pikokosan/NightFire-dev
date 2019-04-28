@@ -34,21 +34,20 @@ PNCP::PNCP(uint8_t GADD, uint32_t UADD)
     \details This only needs to be called during setup()
     \param baud Baud rate for UART.
     \param port Hardware serial port. Defined 0-4
-    \param RE_pin_def Recieve enable pin used for the rs-485 chip.
-    \param DE_pin_def Data enable pin used for the rs-485 chip.
+    \param RE_DE_pin_def Data enable pin used for the rs-485 chip.
 
 */
 
 
-void PNCP::begin( long baud, size_t port, uint8_t RE_pin_def, uint8_t DE_pin_def)
+void PNCP::begin( long baud, size_t port, uint8_t RE_DE_pin_def)
 {
   this->_timeout  = TIMEOUT;
-  this->_DE_pin = DE_pin_def;
-  this->_RE_pin = RE_pin_def;
-  pinMode(_RE_pin, OUTPUT);
-  pinMode(_DE_pin, OUTPUT);
-  digitalWrite(_RE_pin, LOW);
-  digitalWrite(_DE_pin, LOW);
+  this->_RE_DE_pin = RE_DE_pin_def;
+  //this->_RE_pin = RE_pin_def;
+  //pinMode(_RE_pin, OUTPUT);
+  pinMode(_RE_DE_pin, OUTPUT);
+  //digitalWrite(_RE_pin, LOW);
+  digitalWrite(_RE_DE_pin, LOW);
   switch(port)
         {
         #if defined(UBRR1H)
@@ -118,8 +117,8 @@ bool PNCP::available()
 */
 
 void PNCP::update(){
-  digitalWrite(_DE_pin, LOW);
-  digitalWrite(_RE_pin, LOW);
+  digitalWrite(_RE_DE_pin, LOW);
+  //digitalWrite(_RE_pin, LOW);
   //Serial.println("in the phy idle");
   if(_serial == 0)
     {
@@ -239,7 +238,62 @@ void PNCP::recieve()
       return;
     }
 
-      if(_status == HEADER )
+    if(this->_status == ADDRESS)
+    {
+      //Check to make sure the byte isn't an encoded byte
+      data = this->decode(data);
+
+      if(this->_Address_type == SOFG){
+        //_serial->println("got group address");
+        //Check to make sure the byte isn't an encoded byte
+        data = this->decode(data);
+        this->frame.address.GADD = data;
+        if(this->frame.address.GADD == _GADD) this->_forus = true;
+        //this->_CalCrc = this->CRC15(&this->frame.address.GADD, 1, this->_CalCrc);
+        //this->_CalCrc =   _crc_ccitt_update(this->_CalCrc, data);
+        this->_CalCrc = this->CRC16(&this->frame.address.GADD, 1);
+      }
+      if(this->_Address_type == SOFU)
+      {
+        //_serial->println("got unique address");
+        if(_addresslength != 4)
+        {
+          //Check to make sure the byte isn't an encoded byte
+          data = this->decode(data);
+          this->frame.address.UADD[_addresslength] = data;
+          //this->_CalCrc = this->CRC16(data, 1, this->_CalCrc);
+
+          _addresslength++;
+          if(this->_addresslength == 4)
+          {
+            if(this->frame.address.LUADD == _UADD) this->_forus = true;
+
+            //DEBUG
+            /*
+            _serial->print("LUADD = ");
+            _serial->println(this->frame.address.LUADD,HEX);
+            _serial->print("_UADD = ");
+            _serial->println(this->_UADD,HEX);
+            _serial->print("UADD[] = ");
+            */
+
+            this->_CalCrc = this->CRC16(this->frame.address.UADD, 4, this->_CalCrc);
+            this->_addresslength = 0;
+          }else{
+
+            return;
+          }
+        }
+
+      }
+
+      this->_status = HEADER;
+      return;
+
+
+    }
+
+    if(_status == HEADER )
       {
         //_serial->println("got header");
         //this->headerdecode(data);
@@ -255,14 +309,16 @@ void PNCP::recieve()
         if(this->frame.header.FV)
         {
           //_errorCallback;
-          _serial->println("got header error");
+          #if defined(DLL_DEBUG)
+            _serial->println("got header error");
+          #endif
           this->_status = SYNC;
           return;
         }
 
         if(this->frame.header.PT)
         {
-          _serial->println("payload");
+          //_serial->println("payload");
         // Check to see if its version 1.0 if ot call error.
         this->_internal = false;
         this->_status = PAYLOAD;
@@ -278,60 +334,7 @@ void PNCP::recieve()
 
       }
 
-      if(this->_status == ADDRESS)
-      {
-        //Check to make sure the byte isn't an encoded byte
-        data = this->decode(data);
 
-        if(this->_Address_type == SOFG){
-          _serial->println("got group address");
-          //Check to make sure the byte isn't an encoded byte
-          data = this->decode(data);
-          this->frame.address.GADD = data;
-          if(this->frame.address.GADD == _GADD) this->_forus = true;
-          //this->_CalCrc = this->CRC15(&this->frame.address.GADD, 1, this->_CalCrc);
-          //this->_CalCrc =   _crc_ccitt_update(this->_CalCrc, data);
-          this->_CalCrc = this->CRC16(&this->frame.address.GADD, 1);
-        }
-        if(this->_Address_type == SOFU)
-        {
-          //_serial->println("got unique address");
-          if(_addresslength != 4)
-          {
-            //Check to make sure the byte isn't an encoded byte
-            data = this->decode(data);
-            this->frame.address.UADD[_addresslength] = data;
-            //this->_CalCrc = this->CRC16(data, 1, this->_CalCrc);
-
-            _addresslength++;
-            if(this->_addresslength == 4)
-            {
-              if(this->frame.address.LUADD == _UADD) this->_forus = true;
-
-              //DEBUG
-              /*
-              _serial->print("LUADD = ");
-              _serial->println(this->frame.address.LUADD,HEX);
-              _serial->print("_UADD = ");
-              _serial->println(this->_UADD,HEX);
-              _serial->print("UADD[] = ");
-              */
-
-              this->_CalCrc = this->CRC16(this->frame.address.UADD, 4, this->_CalCrc);
-              this->_addresslength = 0;
-            }else{
-
-              return;
-            }
-          }
-
-        }
-
-        this->_status = HEADER;
-        return;
-
-
-      }
 
 
       if(this->_status == PAYLOAD)
@@ -440,10 +443,12 @@ void PNCP::recieve()
         {
           this->_Complete = false;
           this->_CRCCount = 0;
-          _serial->print("bad crc =");
-          _serial->println(this->frame.crc.LCRC,HEX);
-          _serial->print("CRC calculated = ");
-          _serial->println(this->_CalCrc,HEX);
+          #if defined(CRC_DEBUG)
+            _serial->print("bad crc =");
+            _serial->println(this->frame.crc.LCRC,HEX);
+            _serial->print("CRC calculated = ");
+            _serial->println(this->_CalCrc,HEX);
+          #endif
           this->_CalCrc = 0;
           this->_status = SYNC;
           //CRC error
@@ -534,7 +539,17 @@ uint16_t PNCP::CRC16(const uint8_t *data, uint8_t length, uint16_t crc )
 {
   //This function is build into avrlibc.
   for(int i = 0; i < length; i++)
+  {
     crc = _crc_ccitt_update(crc, data[i]);
+    #if defined(CRC_DEBUG)
+    Serial.print("data= ");
+    Serial.print(data[i],HEX);
+    Serial.print(" crc check ");
+    Serial.print(i ,DEC);
+    Serial.print("= ");
+    Serial.println(crc,HEX);
+    #endif
+  }
 
   return crc;
 }
@@ -720,6 +735,49 @@ bool PNCP::write(uint8_t *PLD, uint8_t size)
   //uint8_t temp;
   //if(this->_GSlot<0)
   //{
+  //size = 3;
+  byte buf[100];
+
+
+
+  union{
+    struct{
+      bool CF  : 1;  // CRC flag
+      bool RSV : 1;  // Reserved
+      bool PT  : 1;  // payload type
+      uint8_t PLI : 4;  // payload length index
+      bool FV  : 1;  // frame version
+      };
+    uint8_t PRMS;
+  }write_header;
+  write_header.CF = true;
+  write_header.PT = true;
+  write_header.FV = false;
+  write_header.PLI = PFLCal(size);
+
+  this->frame.address.LUADD = getUADD();
+
+  buf[0] = this->frame.address.UADD[3];
+  buf[1] = this->frame.address.UADD[2];
+  buf[2] = this->frame.address.UADD[1];
+  buf[3] = this->frame.address.UADD[0];
+  buf[4] = write_header.PRMS;
+
+
+  for(int e = 0; e < size; e++)
+  {
+    //int d = size-1;
+    uint8_t test = e+5;
+    buf[test] = PLD[e];
+  }
+
+  this->_CalCrc =0;
+  this->_CalCrc = this->CRC16(buf, size+5, this->_CalCrc);
+
+  //buf[size+5] = this->_CalCrc;
+
+
+
     unsigned long seed=seedOut(31);
 
     randomSeed(seed);
@@ -735,45 +793,14 @@ bool PNCP::write(uint8_t *PLD, uint8_t size)
     dump = _serial->read();
   delay(this->_GSlot * 3);
 }
-  digitalWrite(_DE_pin, HIGH);
-  digitalWrite(_RE_pin, HIGH);
+  digitalWrite(_RE_DE_pin, HIGH);
+  //digitalWrite(_RE_pin, HIGH);
 
 
   _serial->write(SOFR);
-  //bufferwait();
-  //temp = _serial->read();
-  //if(temp != SOFR);
-  //{
-  //  return false;
-  //}
-  //_serial->write("test");
-  _serial->write((byte*)&this->_UADD,sizeof(this->_UADD));
-  //need to add header byte and size calculation
-  union{
-    struct{
-      uint8_t CF  : 1;  // CRC flag
-      uint8_t RSV : 1;  // Reserved
-      uint8_t PT  : 1;  // payload type
-      uint8_t PLI : 4;  // payload length index
-      uint8_t FV  : 1;  // frame version
-    };
-    uint8_t PRMS;
-  }write_header;
-  write_header.CF = true;
-  write_header.PT = true;
-  write_header.FV = false;
-  write_header.PLI = PFLCal(size);
-
-  _serial->write(write_header.PRMS);
-
-  //_serial-write
-  _serial->write((byte*)PLD,size);
-  this->_CalCrc =0;
-  this->_CalCrc = this->CRC16(this->_UADD, 4, this->_CalCrc);
-  this->_CalCrc = this->CRC16((byte*)&write_header.PRMS, 1, this->_CalCrc);
-  this->_CalCrc = this->CRC16(PLD, size, this->_CalCrc);
+  _serial->write(buf,size+5);//test write
   _serial->write((byte*)&this->_CalCrc,sizeof(this->_CalCrc));
-  //this->_CalCrc = 0;
+
   bufferwait();
   this->_CalCrc =0;
 
@@ -855,8 +882,8 @@ void PNCP::Subcommands(uint8_t*data, uint8_t size)
 
     case 0x01:
       //Get GADD
-      packet[0] = 1;
-      packet[1] = this->getGADD();
+      packet[1] = 0;//ACK/NACk
+      packet[0] = this->getGADD();
       this->write(packet,2);
       return;
 

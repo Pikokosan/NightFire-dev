@@ -28,21 +28,14 @@
 
 String Version = "0.3 PNCP";
 
-uint8_t _GADD;
-uint32_t _UADD;
+uint8_t groupAdd;
+uint32_t uniqueAdd;
 
 
 
-#if defined(MCU_STM32F103C8)
-  #define testled PC13
-#endif
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
-  #define testled 13
-#endif
+uint8_t pulsewidth = EEPROM.read(3) >>4;
 
-
-
-uint8_t pulsewidth = EEPROM.read(10);
+const int testled  = 13;
 
 //EEprom layout
 /*
@@ -151,9 +144,9 @@ PNCPAPPL APPL(DLL);
 
 void setup()
 {
-  _GADD = DLL.getGADD();
-  _UADD = DLL.getUADD();
-
+  groupAdd = DLL.getGADD();
+  uniqueAdd = DLL.getUADD();
+  //pinMode(testled, OUTPUT);
 
   #if defined(__AVR_ATmega32U4__)
     DLL.begin(115200,2);
@@ -162,19 +155,21 @@ void setup()
     DLL.begin(115200, 1);
   #endif
   battery.begin(5000, 3.2);
-  //pinMode(13, OUTPUT);
+  pinMode(13, OUTPUT);
   //pinMode(testled,OUTPUT);
 
   //setup i2c output pins
   outputCtrl.begin();
   #if defined(USE_MCP23008)
-  for(int i=0 ; i<7; i++){
-    outputCtrl.pinMode(i, OUTPUT);
-  }
+    for(int i=0 ; i<7; i++){
+      outputCtrl.pinMode(i, OUTPUT);
+    }
   #endif
+
   #if defined(USE_MC33996)
     outputCtrl.enableContinutyDetection();
   #endif
+
   callbacksetup();
 
 
@@ -186,10 +181,11 @@ void setup()
     EEPROMWritelong(1, firstCapabilities);
   #endif
   delay(500);
-  digitalWrite(testled, LOW);
+
   LCDSetup();
+
   #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
-    wdt_enable(WDTO_2S);
+    wdt_enable(WDTO_2S);// the watchdog timer is used to detect if the system hangs and resets it
   #endif
 
 }
@@ -201,10 +197,10 @@ void loop()
   batteryCheck();
   APPL.update();
   uint8_t temp = DLL.getGADD();
-  if(temp != _GADD)
+  if(temp != groupAdd)
   {
     EEPROM.update(5,temp);
-    _GADD = temp;
+    groupAdd = temp;
   }
 
 }
@@ -309,17 +305,19 @@ void callbacksetup()
     union
     {
       uint32_t bytes32;
-      uint8_t bytes[3];
+      uint8_t bytes[4];
 
     }testing;
+
     //test_val testing;
-    testing.bytes32 = registry << 4;
+    testing.bytes32 = registry >> 4;
 
 
     //testing.bytes[0] = (temp >> 0)  & 0xFF;
     //testing.bytes[1] = (temp >> 8)  & 0xFF;
     //testing.bytes[2] = (temp >> 16) & 0xFF;
     #if defined(MAIN_DEBUG)
+      Serial.println("sent bytes:");
       Serial.println(testing.bytes[2],BIN);
       Serial.println(testing.bytes[1],BIN);
       Serial.println(testing.bytes[0],BIN);
@@ -336,7 +334,7 @@ void report()
   long capabilities = EEPROMReadlong(1);
   #if defined(MAIN_DEBUG)
     Serial.print("capabilities = ");
-    Serial.println(capabilities,DEC);
+    Serial.println(capabilities,HEX);
   #endif
    DLL.write((uint8_t*)&capabilities, 4);
 
@@ -347,7 +345,12 @@ void SetPulse(uint8_t pulse)
   pulsewidth = pulse;
   //Serial.print("pulse width = ");
   //Serial.println(pulsewidth,DEC);
-  EEPROM.update(6,pulsewidth);
+  pulse = pulse <<4;
+  //byte temp =
+
+
+  //temp = EEPROM.read(3)
+  EEPROM.update(3,pulse);
 }
 
 
@@ -359,7 +362,9 @@ void fire(uint8_t cue)
   #endif
 
   outputCtrl.digitalWrite(cue, HIGH);
-  delay(pulsewidth);
+  //digitalWrite(13, HIGH);
+  delay(pulsewidth*10);
+  //digitalWrite(13, LOW);
   outputCtrl.digitalWrite(cue, LOW);
 
 }
