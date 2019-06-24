@@ -82,7 +82,7 @@ private:
   uint8_t _RE_DE_pin;
   //uint8_t _RE_pin;
 
-  uint8_t _addresslength;
+  uint8_t _addresslength = 0;
   //uint8_t _status;
   uint32_t _UADD;
   uint8_t _GADD;
@@ -98,7 +98,7 @@ private:
   uint16_t CRC15(const uint8_t *data, uint8_t length, uint16_t crc = 0x0000);
   uint16_t CRC16(const uint8_t *data, uint8_t length, uint16_t crc = 0x0000);
   uint16_t _crc_ccitt_update (uint16_t crc, uint8_t data);
-  uint8_t PFLCal(uint8_t len);
+  uint8_t PFLCal(uint8_t len, bool send = false);
   uint8_t decode(uint8_t data);
   uint16_t timedread();
   uint8_t Trandom();

@@ -189,6 +189,7 @@ void PNCPAPPL::update()
           break;
 
           case ReportCueResistance:
+            DLL.write(UMP,1);
           break;
 
           default:

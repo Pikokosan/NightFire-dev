@@ -209,6 +209,7 @@ void PNCP::recieve()
       {
         case SOFB:
         this->_status = HEADER;
+        this->_forus = true; //sets to true because it a broadcast packet.
         //_serial->println("got Boadcast sync");
         this->_Address_type = data;
         break;
@@ -253,6 +254,7 @@ void PNCP::recieve()
         //this->_CalCrc =   _crc_ccitt_update(this->_CalCrc, data);
         this->_CalCrc = this->CRC16(&this->frame.address.GADD, 1);
       }
+
       if(this->_Address_type == SOFU)
       {
         //_serial->println("got unique address");
@@ -266,17 +268,20 @@ void PNCP::recieve()
           _addresslength++;
           if(this->_addresslength == 4)
           {
-            if(this->frame.address.LUADD == _UADD) this->_forus = true;
+            if(this->frame.address.LUADD == __builtin_bswap32(this->_UADD)){
+              this->_forus = true;
+            }else{ this->_forus = false;}
 
             //DEBUG
-            /*
-            _serial->print("LUADD = ");
+
+            /*_serial->print("LUADD = ");
             _serial->println(this->frame.address.LUADD,HEX);
             _serial->print("_UADD = ");
             _serial->println(this->_UADD,HEX);
             _serial->print("UADD[] = ");
             */
 
+            //this->_status = HEADER;
             this->_CalCrc = this->CRC16(this->frame.address.UADD, 4, this->_CalCrc);
             this->_addresslength = 0;
           }else{
@@ -300,7 +305,8 @@ void PNCP::recieve()
         //Check to make sure the byte isn't an encoded byte
         data = this->decode(data);
 
-
+        //_serial->print("Forus = ");
+        //_serial->println(this->_forus);
         this->frame.header.PRMS = data;
 
         //crc-16 calculate
@@ -318,7 +324,7 @@ void PNCP::recieve()
 
         if(this->frame.header.PT)
         {
-          //_serial->println("payload");
+        //_serial->println("payload");
         // Check to see if its version 1.0 if ot call error.
         this->_internal = false;
         this->_status = PAYLOAD;
@@ -426,7 +432,9 @@ void PNCP::recieve()
             this->_CalCrc = 0;
             uint8_t size = PFLCal(this->frame.header.PLI);
 
-            this->Subcommands(this->frame.PLD,size);
+            if(this->_forus == true)
+              this->Subcommands(this->frame.PLD,size);
+
 
             return;
           }
@@ -592,10 +600,36 @@ uint16_t PNCP::CRC15(const uint8_t *data, uint8_t length, uint16_t crc )
 
 
 
-uint8_t PNCP::PFLCal(uint8_t len)
+uint8_t PNCP::PFLCal(uint8_t len, bool send)
 {
 
-uint8_t afli;
+  uint8_t afli;
+  if (send == true)
+  {
+  if (len <7){
+    afli = len - 1;
+  }
+  else if (len <17){
+    afli = ((len-1)/4)+5;
+  }
+  else if (len <31){
+    afli = (len/8)+6;
+  }
+  else if (len <65){
+    afli = (len/16)+8;
+  }
+  else if (len <129){
+    afli = (len/32)+10;
+  }
+  else if (len <256){
+    afli = (len = 15);
+  }
+  else{
+    //error
+  }
+}
+else{
+
 if(len < 5) {
   afli = len + 1;
 }
@@ -613,6 +647,8 @@ else if (len < 15) {
 }
 else {
   // This is an error.
+}
+
 }
 return afli;
 }
@@ -753,7 +789,7 @@ bool PNCP::write(uint8_t *PLD, uint8_t size)
   write_header.CF = true;
   write_header.PT = true;
   write_header.FV = false;
-  write_header.PLI = PFLCal(size);
+  write_header.PLI = PFLCal(size,true);
 
   this->frame.address.LUADD = getUADD();
 
@@ -878,19 +914,23 @@ unsigned long PNCP::seedOut(unsigned int noOfBits)
 void PNCP::Subcommands(uint8_t*data, uint8_t size)
 {
   uint8_t packet[2];
+  //this->_forus = false;
   switch(this->frame.CMD){
 
     case 0x01:
       //Get GADD
-      packet[1] = 0;//ACK/NACk
-      packet[0] = this->getGADD();
+      //Using this for device discovery
+      packet[0] = 0;//ACK/NACk
+      packet[1] = this->getGADD();
       this->write(packet,2);
       return;
 
     case 0x02:
       //Set GADD
+      //_serial->println(this->_forus,DEC);
       this->setGADD(data[1]);
       this->write(0,1);
+      //break;
       //_serial->print("set command = ");
       //_serial->println(data[1]);
       //this->write(uint8_t *PLD, uint8_t size)

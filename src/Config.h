@@ -1,15 +1,15 @@
 #include <arduino.h>
 
 //#define APPL_DEBUG
-#define DLL_DEBUG
-#define MAIN_DEBUG
+//#define DLL_DEBUG
+//#define MAIN_DEBUG
 //#define CRC_DEBUG
-#define DEBUG
+//#define DEBUG
 //Uncomment to set up the devices eeprom. then comment and reflash
 // Pikoko Unique address 0x14CAC701-FF
 
 //#define firstrun
-#define firstGADD         0x02
+#define firstGADD         0x01
 #define firstUADD         0x14CAC704
 #define firstCapabilities 0x10f0001a
 //#define firstCapabilities 0xA0050200

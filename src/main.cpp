@@ -201,6 +201,8 @@ void loop()
   {
     EEPROM.update(5,temp);
     groupAdd = temp;
+    lcd.setCursor(6,0);
+    lcd.print(DLL.getGADD());
   }
 
 }
@@ -274,9 +276,6 @@ void callbacksetup()
   APPL.setHandleReport(report);
   APPL.setHandleSetPulse(SetPulse);
   #if defined(USE_MC33996) && defined(USE_MC33996_CONTINUITY_CHECK)
-    #if defined(MAIN_DEBUG)
-      Serial.println("Continuity check enabled");
-    #endif
     outputCtrl.setFaultReport(callbackOutputfault);
     APPL.setHandleCueContinuity(callbackCuecontinuity);
   #endif
