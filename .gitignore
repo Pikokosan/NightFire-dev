@@ -27,6 +27,7 @@
 *.app
 # Folders
 doxygen/
+.pio/
 .pioenvs/
 .piolibdeps/
 .piolibdeps
