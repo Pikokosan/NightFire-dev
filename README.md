@@ -12,6 +12,8 @@ Currently we are using a simple Python script to send and receive data from the 
 
 To use in the Arduino IDE download and copy the /lib/PNCP folder to your Arduino sketch library directory. rename main.cpp to Nightfire.ino
 
+I recommend watching this video on firing systems and protocols. https://youtu.be/aSEpCoPppWQ
+
 
 
 ##
