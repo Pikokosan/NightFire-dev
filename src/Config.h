@@ -1,4 +1,4 @@
-#include <arduino.h>
+//#include <arduino.h>
 
 //#define APPL_DEBUG
 //#define DLL_DEBUG
