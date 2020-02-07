@@ -326,13 +326,13 @@ void PNCP::recieve()
         {
         //_serial->println("payload");
         // Check to see if its version 1.0 if ot call error.
-        this->_internal = false;
+        //this->_internal = false;
         this->_status = PAYLOAD;
         return;
       }else
       {
         //_serial->println("subpayload");
-        this->_internal = true;
+        //this->_internal = true;
         this->_status = PAYLOAD;
         return;
       }
@@ -893,11 +893,11 @@ unsigned int PNCP::bitOut(void)
   return bit1;
 }
 //------------------------------------------------------------------------------
-unsigned long PNCP::seedOut(unsigned int noOfBits)
+unsigned long PNCP::seedOut(uint16_t noOfBits)
 {
   // return value with 'noOfBits' random bits set
   unsigned long seed=0;
-  for (int i=0;i<noOfBits;++i)
+  for (uint16_t i=0;i<noOfBits;++i)
     seed = (seed<<1) | bitOut();
   return seed;
 }

@@ -93,7 +93,7 @@ private:
   uint16_t _timeout;
   uint16_t _GSlot;
 
-  bool _internal;
+  //bool _internal;
 
   uint16_t CRC15(const uint8_t *data, uint8_t length, uint16_t crc = 0x0000);
   uint16_t CRC16(const uint8_t *data, uint8_t length, uint16_t crc = 0x0000);

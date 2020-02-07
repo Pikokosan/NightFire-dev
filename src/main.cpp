@@ -8,6 +8,7 @@
 #include "Config.h"
 
 
+
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
   #include <avr/wdt.h>
 #endif
@@ -26,7 +27,7 @@
 
 
 
-String Version = "0.3 PNCP";
+const String Version = "0.3 PNCP";
 
 uint8_t groupAdd;
 uint32_t uniqueAdd;
