@@ -37,6 +37,8 @@ I recommend watching this video on firing systems and protocols. https://youtu.b
 
 ## Pinouts
 
+For Devboard schematics and board's check my [Cadlab.io](https://cadlab.io/project/22981/master/files) project page
+
 
  Arduino | [MAX485]( https://datasheets.maximintegrated.com/en/ds/MAX1487-MAX491.pdf )	|          
 |:-------------:|---------------------|

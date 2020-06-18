@@ -101,7 +101,7 @@ void PNCPAPPL::setHandleSetPulse(void (*fptr)(uint8_t pulse))   { mSetPulseCallb
    \sa setHandleChargecues()
    \sa setHandleSinglecue()
   */
-void PNCPAPPL::setHandleGetVoltage(uint8_t (*fptr)(void))   { mGetVoltageCallback               = fptr; }
+void PNCPAPPL::setHandleGetVoltage(uint8_t (*fptr)(void))   { mGetVoltageCallback                = fptr; }
 
 
 /*!

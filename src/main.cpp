@@ -197,6 +197,7 @@ void loop()
 
   batteryCheck();
   APPL.update();
+  //This is used to update the local group address and change the lcd to match
   uint8_t temp = DLL.getGADD();
   if(temp != groupAdd)
   {
@@ -300,8 +301,7 @@ void callbacksetup()
       Serial.print(" inverted OUTPUTS= ");
       Serial.println(registry,BIN);
     #endif
-    //uint32_t temp = registry;
-    //temp = temp << 8;
+    
     union
     {
       uint32_t bytes32;
@@ -309,13 +309,8 @@ void callbacksetup()
 
     }testing;
 
-    //test_val testing;
     testing.bytes32 = registry >> 4;
 
-
-    //testing.bytes[0] = (temp >> 0)  & 0xFF;
-    //testing.bytes[1] = (temp >> 8)  & 0xFF;
-    //testing.bytes[2] = (temp >> 16) & 0xFF;
     #if defined(MAIN_DEBUG)
       Serial.println("sent bytes:");
       Serial.println(testing.bytes[2],BIN);
@@ -356,6 +351,7 @@ void SetPulse(uint8_t pulse)
 
 void fire(uint8_t cue)
 {
+  //Single cue firing
   #if defined(MAIN_DEBUG)
     Serial.print("Firing cue: ");
     Serial.println(cue,DEC);
